@@ -288,6 +288,10 @@ socket.on('message-reacted', function(data) {
       var mine = data.reactions[emoji].indexOf(userId) !== -1;
       rHtml += '<span class="reaction-badge ' + (mine ? 'mine' : '') + '" onclick="toggleReaction(\'' + data.messageId + '\', \'' + emoji + '\', \'dm\', \'' + friendId + '\')">' + emojiIcon(emoji) + ' ' + data.reactions[emoji].length + '</span>';
     });
+    rDiv.innerHTML = rHtml;
+    msgEl.appendChild(rDiv);
+  }
+});
 
 function setReply(msgId, senderName, msgPreview) {
   replyToId = msgId;

@@ -42,7 +42,7 @@
       <div class="chat-header-actions">
         <a href="/groups" class="btn btn-sm"><i class="fas fa-arrow-left"></i></a>
         <% if (members.some(m => m.userId === user.id && m.role === 'admin')) { %>
-          <button class="btn btn-sm" id="addMemberHeaderBtn" style="margin-left:4px"><i class="fas fa-user-plus"></i></button>
+          <button class="btn btn-sm" id="addMemberHeaderBtn" style="margin-left:4px" title="Add member"><i class="fas fa-user-plus"></i></button>
         <% } %>
         <% if (group.createdBy === user.id) { %>
           <button class="btn btn-sm" id="settingsBtn" style="margin-left:4px"><i class="fas fa-cog"></i></button>
@@ -441,7 +441,7 @@ function openAddMember() {
       }
       document.getElementById('addMemberModal').style.display = 'flex';
     });
-});
+}
 
 function addMember(friendId) {
   fetch(`/group/${groupId}/add`, {
@@ -471,8 +471,6 @@ document.getElementById('settingsBtn')?.addEventListener('click', function() {
 
 document.getElementById('addMemberHeaderBtn')?.addEventListener('click', openAddMember);
 document.getElementById('addMemberBtn')?.addEventListener('click', openAddMember);
-
-function openAddMember() {
 
 function closeSettings() {
   document.getElementById('groupSettingsModal').style.display = 'none';
