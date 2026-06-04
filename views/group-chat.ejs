@@ -86,27 +86,26 @@
               <% } %>
               <% if (msg.content) { %><p><%= msg.content %></p><% } %>
               <span class="message-time"><%= new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></span>
-              <% if (isMine) { %>
-                <span class="message-status <%= msg.read ? 'read' : '' %>"><%= msg.read ? 'Read' : 'Sent' %></span>
-              <% } %>
               <button class="btn-reply" onclick="setReply('<%= msg.id %>', '<%= (msg.sender.displayName || msg.sender.username).replace(/'/g, "\\'") %>', '<%= (msg.content || '').replace(/'/g, "\\'").substring(0, 50).replace(/\\n/g, ' ') %>')" title="Reply"><i class="fas fa-reply"></i></button>
             </div>
+            <% if (isMine) { %>
+              <span class="message-status <%= msg.read ? 'read' : '' %>"><%= msg.read ? 'Read' : 'Sent' %></span>
+            <% } %>
             <% if (msg.reactions && Object.keys(msg.reactions).length > 0) { %>
               <div class="message-reactions">
                 <% Object.keys(msg.reactions).forEach(function(emoji) { %>
-                  <span class="reaction-badge <%= (msg.reactions[emoji].indexOf(user.id) !== -1) ? 'mine' : '' %>" onclick="toggleReaction('<%= msg.id %>', '<%= emoji %>', 'group', '<%= group.id %>')"><%= emoji %> <%= msg.reactions[emoji].length %></span>
+                  <span class="reaction-badge <%= (msg.reactions[emoji].indexOf(user.id) !== -1) ? 'mine' : '' %>" onclick="toggleReaction('<%= msg.id %>', '<%= emoji %>', 'group', '<%= group.id %>')"><i class="fas <%= { '❤️':'fa-heart','😂':'fa-face-laugh-squint','😮':'fa-face-surprise','😢':'fa-face-sad-tear','😡':'fa-face-angry','👍':'fa-thumbs-up' }[emoji] || 'fa-heart' %>"></i> <%= msg.reactions[emoji].length %></span>
                 <% }); %>
               </div>
             <% } %>
             <div class="message-emoji-bar">
-              <span onclick="toggleReaction('<%= msg.id %>', '❤️', 'group', '<%= group.id %>')">❤️</span>
-              <span onclick="toggleReaction('<%= msg.id %>', '😂', 'group', '<%= group.id %>')">😂</span>
-              <span onclick="toggleReaction('<%= msg.id %>', '😮', 'group', '<%= group.id %>')">😮</span>
-              <span onclick="toggleReaction('<%= msg.id %>', '😢', 'group', '<%= group.id %>')">😢</span>
-              <span onclick="toggleReaction('<%= msg.id %>', '😡', 'group', '<%= group.id %>')">😡</span>
-              <span onclick="toggleReaction('<%= msg.id %>', '👍', 'group', '<%= group.id %>')">👍</span>
+              <span onclick="toggleReaction('<%= msg.id %>', '❤️', 'group', '<%= group.id %>')"><i class="fas fa-heart"></i></span>
+              <span onclick="toggleReaction('<%= msg.id %>', '😂', 'group', '<%= group.id %>')"><i class="fas fa-face-laugh-squint"></i></span>
+              <span onclick="toggleReaction('<%= msg.id %>', '😮', 'group', '<%= group.id %>')"><i class="fas fa-face-surprise"></i></span>
+              <span onclick="toggleReaction('<%= msg.id %>', '😢', 'group', '<%= group.id %>')"><i class="fas fa-face-sad-tear"></i></span>
+              <span onclick="toggleReaction('<%= msg.id %>', '😡', 'group', '<%= group.id %>')"><i class="fas fa-face-angry"></i></span>
+              <span onclick="toggleReaction('<%= msg.id %>', '👍', 'group', '<%= group.id %>')"><i class="fas fa-thumbs-up"></i></span>
             </div>
-          </div>
           </div>
         <% }); %>
       <% } else { %>
@@ -253,14 +252,17 @@ socket.on('new-group-message', function(msg) {
   if (msg.content) content += '<p>' + msg.content + '</p>';
   const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   content += '<span class="message-time">' + time + '</span>';
-  if (isMine) {
-    content += '<span class="message-status">Sent</span>';
-  }
   const senderName = (msg.sender.displayName || msg.sender.username).replace(/'/g, "\\'");
   const msgContent = (msg.content || '').replace(/'/g, "\\'").substring(0, 50).replace(/\n/g, ' ');
   content += '<button class="btn-reply" onclick="setReply(\'' + msg.id + '\', \'' + senderName + '\', \'' + msgContent + '\')" title="Reply"><i class="fas fa-reply"></i></button>';
 
   div.innerHTML = '<div class="message-content">' + content + '</div>';
+  if (isMine) {
+    var statusEl = document.createElement('span');
+    statusEl.className = 'message-status' + (msg.read ? ' read' : '');
+    statusEl.textContent = msg.read ? 'Read' : 'Sent';
+    div.appendChild(statusEl);
+  }
 
   const reactionsHtml = document.createElement('div');
   reactionsHtml.className = 'message-reactions';
@@ -268,7 +270,7 @@ socket.on('new-group-message', function(msg) {
     let rHtml = '';
     Object.keys(msg.reactions).forEach(function(emoji) {
       const mine = msg.reactions[emoji].indexOf(userId) !== -1;
-      rHtml += '<span class="reaction-badge ' + (mine ? 'mine' : '') + '" onclick="toggleReaction(\'' + msg.id + '\', \'' + emoji + '\', \'group\', \'' + groupId + '\')">' + emoji + ' ' + msg.reactions[emoji].length + '</span>';
+      rHtml += '<span class="reaction-badge ' + (mine ? 'mine' : '') + '" onclick="toggleReaction(\'' + msg.id + '\', \'' + emoji + '\', \'group\', \'' + groupId + '\')">' + emojiIcon(emoji) + ' ' + msg.reactions[emoji].length + '</span>';
     });
     reactionsHtml.innerHTML = rHtml;
     div.appendChild(reactionsHtml);
@@ -276,12 +278,17 @@ socket.on('new-group-message', function(msg) {
 
   const emojiBar = document.createElement('div');
   emojiBar.className = 'message-emoji-bar';
-  emojiBar.innerHTML = '<span onclick="toggleReaction(\'' + msg.id + '\', \'❤️\', \'group\', \'' + groupId + '\')">❤️</span><span onclick="toggleReaction(\'' + msg.id + '\', \'😂\', \'group\', \'' + groupId + '\')">😂</span><span onclick="toggleReaction(\'' + msg.id + '\', \'😮\', \'group\', \'' + groupId + '\')">😮</span><span onclick="toggleReaction(\'' + msg.id + '\', \'😢\', \'group\', \'' + groupId + '\')">😢</span><span onclick="toggleReaction(\'' + msg.id + '\', \'😡\', \'group\', \'' + groupId + '\')">😡</span><span onclick="toggleReaction(\'' + msg.id + '\', \'👍\', \'group\', \'' + groupId + '\')">👍</span>';
+  emojiBar.innerHTML = '<span onclick="toggleReaction(\'' + msg.id + '\', \'❤️\', \'group\', \'' + groupId + '\')">' + emojiIcon('❤️') + '</span><span onclick="toggleReaction(\'' + msg.id + '\', \'😂\', \'group\', \'' + groupId + '\')">' + emojiIcon('😂') + '</span><span onclick="toggleReaction(\'' + msg.id + '\', \'😮\', \'group\', \'' + groupId + '\')">' + emojiIcon('😮') + '</span><span onclick="toggleReaction(\'' + msg.id + '\', \'😢\', \'group\', \'' + groupId + '\')">' + emojiIcon('😢') + '</span><span onclick="toggleReaction(\'' + msg.id + '\', \'😡\', \'group\', \'' + groupId + '\')">' + emojiIcon('😡') + '</span><span onclick="toggleReaction(\'' + msg.id + '\', \'👍\', \'group\', \'' + groupId + '\')">' + emojiIcon('👍') + '</span>';
   div.appendChild(emojiBar);
 
   messagesContainer.appendChild(div);
   scrollToBottom();
 });
+
+function emojiIcon(e) {
+  var m = {'❤️':'fa-heart','😂':'fa-face-laugh-squint','😮':'fa-face-surprise','😢':'fa-face-sad-tear','😡':'fa-face-angry','👍':'fa-thumbs-up'};
+  return '<i class="fas ' + (m[e]||'fa-heart') + '"></i>';
+}
 
 socket.on('message-reacted', function(data) {
   var msgEl = document.querySelector('.message[data-message-id="' + data.messageId + '"]');
@@ -295,7 +302,7 @@ socket.on('message-reacted', function(data) {
     var rHtml = '';
     Object.keys(data.reactions).forEach(function(emoji) {
       var mine = data.reactions[emoji].indexOf(userId) !== -1;
-      rHtml += '<span class="reaction-badge ' + (mine ? 'mine' : '') + '" onclick="toggleReaction(\'' + data.messageId + '\', \'' + emoji + '\', \'group\', \'' + groupId + '\')">' + emoji + ' ' + data.reactions[emoji].length + '</span>';
+      rHtml += '<span class="reaction-badge ' + (mine ? 'mine' : '') + '" onclick="toggleReaction(\'' + data.messageId + '\', \'' + emoji + '\', \'group\', \'' + groupId + '\')">' + emojiIcon(emoji) + ' ' + data.reactions[emoji].length + '</span>';
     });
     rDiv.innerHTML = rHtml;
     msgEl.appendChild(rDiv);
