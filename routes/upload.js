@@ -1,21 +1,35 @@
 const express = require('express');
 const router = express.Router();
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+const streamifier = require('streamifier');
+const cloudinary = require('../config/cloudinary');
 const auth = require('../middleware/auth');
 
 router.use(auth);
 
-router.post('/file', (req, res) => {
+function uploadToCloudinary(buffer, options = {}) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'ouba',
+        resource_type: 'auto',
+        ...options
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+    streamifier.createReadStream(buffer).pipe(stream);
+  });
+}
+
+router.post('/file', async (req, res) => {
   try {
     if (!req.files || !req.files.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
     const file = req.files.file;
-    const ext = path.extname(file.name);
-    const fileName = `${uuidv4()}${ext}`;
-    const uploadPath = path.join(__dirname, '..', 'public', 'uploads', fileName);
 
     const allowedTypes = [
       'image/jpeg', 'image/png', 'image/gif', 'image/webp',
@@ -40,23 +54,20 @@ router.post('/file', (req, res) => {
       return res.status(400).json({ error: 'File too large (max 50MB)' });
     }
 
-    file.mv(uploadPath, (err) => {
-      if (err) {
-        console.error('File upload error:', err);
-        return res.status(500).json({ error: 'Failed to upload file' });
-      }
+    const result = await uploadToCloudinary(file.data, {
+      public_id: `file_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    });
 
-      res.json({
-        success: true,
-        fileUrl: `/uploads/${fileName}`,
-        fileName: file.name,
-        fileType: file.mimetype,
-        fileSize: file.size
-      });
+    res.json({
+      success: true,
+      fileUrl: result.secure_url,
+      fileName: file.name,
+      fileType: file.mimetype,
+      fileSize: file.size
     });
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(500).json({ error: 'Something went wrong' });
+    res.status(500).json({ error: 'Failed to upload file' });
   }
 });
 
@@ -67,40 +78,35 @@ router.post('/profile-pic', async (req, res) => {
     }
 
     const file = req.files.profilePic;
-    const ext = path.extname(file.name);
-    const fileName = `profile_${req.session.userId}${ext}`;
-    const uploadPath = path.join(__dirname, '..', 'public', 'uploads', fileName);
-
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
     if (!allowedTypes.includes(file.mimetype)) {
       return res.status(400).json({ error: 'Only images are allowed' });
     }
 
-    file.mv(uploadPath, async (err) => {
-      if (err) {
-        console.error('Profile pic upload error:', err);
-        return res.status(500).json({ error: 'Failed to upload' });
-      }
+    const result = await uploadToCloudinary(file.data, {
+      public_id: `profile_${req.session.userId}`,
+      overwrite: true,
+      transformation: { width: 400, height: 400, crop: 'fill', gravity: 'face' }
+    });
 
-      try {
-        const User = require('../models/User');
-        await User.update(
-          { profilePic: `/uploads/${fileName}` },
-          { where: { id: req.session.userId } }
-        );
-      } catch (dbErr) {
-        console.error('Profile pic DB update error:', dbErr);
-      }
+    try {
+      const User = require('../models/User');
+      await User.update(
+        { profilePic: result.secure_url },
+        { where: { id: req.session.userId } }
+      );
+    } catch (dbErr) {
+      console.error('Profile pic DB update error:', dbErr);
+    }
 
-      res.json({
-        success: true,
-        fileUrl: `/uploads/${fileName}`
-      });
+    res.json({
+      success: true,
+      fileUrl: result.secure_url
     });
   } catch (error) {
     console.error('Profile pic error:', error);
-    res.status(500).json({ error: 'Something went wrong' });
+    res.status(500).json({ error: 'Failed to upload profile picture' });
   }
 });
 
