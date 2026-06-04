@@ -96,17 +96,17 @@
             <% if (msg.reactions && Object.keys(msg.reactions).length > 0) { %>
               <div class="message-reactions">
                 <% Object.keys(msg.reactions).forEach(function(emoji) { %>
-                  <span class="reaction-badge <%= (msg.reactions[emoji].indexOf(user.id) !== -1) ? 'mine' : '' %>" onclick="toggleReaction('<%= msg.id %>', '<%= emoji %>', 'dm', '<%= friendId %>')"><%= emoji %> <%= msg.reactions[emoji].length %></span>
+                  <span class="reaction-badge <%= (msg.reactions[emoji].indexOf(user.id) !== -1) ? 'mine' : '' %>" onclick="toggleReaction('<%= msg.id %>', '<%= emoji %>', 'dm', '<%= friend.id %>')"><%= emoji %> <%= msg.reactions[emoji].length %></span>
                 <% }); %>
               </div>
             <% } %>
             <div class="message-emoji-bar">
-              <span onclick="toggleReaction('<%= msg.id %>', '❤️', 'dm', '<%= friendId %>')">❤️</span>
-              <span onclick="toggleReaction('<%= msg.id %>', '😂', 'dm', '<%= friendId %>')">😂</span>
-              <span onclick="toggleReaction('<%= msg.id %>', '😮', 'dm', '<%= friendId %>')">😮</span>
-              <span onclick="toggleReaction('<%= msg.id %>', '😢', 'dm', '<%= friendId %>')">😢</span>
-              <span onclick="toggleReaction('<%= msg.id %>', '😡', 'dm', '<%= friendId %>')">😡</span>
-              <span onclick="toggleReaction('<%= msg.id %>', '👍', 'dm', '<%= friendId %>')">👍</span>
+              <span onclick="toggleReaction('<%= msg.id %>', '❤️', 'dm', '<%= friend.id %>')">❤️</span>
+              <span onclick="toggleReaction('<%= msg.id %>', '😂', 'dm', '<%= friend.id %>')">😂</span>
+              <span onclick="toggleReaction('<%= msg.id %>', '😮', 'dm', '<%= friend.id %>')">😮</span>
+              <span onclick="toggleReaction('<%= msg.id %>', '😢', 'dm', '<%= friend.id %>')">😢</span>
+              <span onclick="toggleReaction('<%= msg.id %>', '😡', 'dm', '<%= friend.id %>')">😡</span>
+              <span onclick="toggleReaction('<%= msg.id %>', '👍', 'dm', '<%= friend.id %>')">👍</span>
             </div>
           </div>
         <% }); %>
