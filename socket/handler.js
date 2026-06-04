@@ -40,7 +40,7 @@ module.exports = (io) => {
 
         const populatedMessage = await Message.findByPk(message.id, {
           include: [
-            { association: 'Sender', attributes: ['id', 'username', 'displayName', 'profilePic'] }
+            { association: 'sender', attributes: ['id', 'username', 'displayName', 'profilePic'] }
           ]
         });
 

@@ -208,7 +208,7 @@ router.get('/friends', async (req, res) => {
           association: 'ReceivedRequests',
           where: { status: 'pending' },
           required: false,
-          include: [{ association: 'Sender', attributes: ['id', 'username', 'displayName', 'profilePic'] }]
+          include: [{ association: 'sender', attributes: ['id', 'username', 'displayName', 'profilePic'] }]
         }
       ]
     });

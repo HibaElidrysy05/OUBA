@@ -77,10 +77,20 @@ router.post('/profile-pic', async (req, res) => {
       return res.status(400).json({ error: 'Only images are allowed' });
     }
 
-    file.mv(uploadPath, (err) => {
+    file.mv(uploadPath, async (err) => {
       if (err) {
         console.error('Profile pic upload error:', err);
         return res.status(500).json({ error: 'Failed to upload' });
+      }
+
+      try {
+        const User = require('../models/User');
+        await User.update(
+          { profilePic: `/uploads/${fileName}` },
+          { where: { id: req.session.userId } }
+        );
+      } catch (dbErr) {
+        console.error('Profile pic DB update error:', dbErr);
       }
 
       res.json({

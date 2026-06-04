@@ -121,20 +121,20 @@
 </div>
 
 <script>
-const socket = io({ transports: ['websocket', 'polling'] });
+const socket = window.appSocket || io({ transports: ['websocket', 'polling'] });
 const userId = '<%= user.id %>';
 const friendId = '<%= friend.id %>';
 let selectedFile = null;
 
-socket.on('connect', () => {
-  console.log('Socket connected:', socket.id);
+if (socket.connected) {
   socket.emit('user-online', userId);
   socket.emit('join-chat', { userId, friendId });
-});
-
-socket.on('connect_error', (err) => {
-  console.error('Socket connection error:', err.message);
-});
+} else {
+  socket.on('connect', () => {
+    socket.emit('user-online', userId);
+    socket.emit('join-chat', { userId, friendId });
+  });
+}
 
 const messagesContainer = document.getElementById('chatMessages');
 const messageInput = document.getElementById('messageInput');

@@ -20,21 +20,21 @@
       <div class="card-body">
         <div class="request-list">
           <% pendingRequests.forEach(function(req) { %>
-            <div class="request-item" id="request-<%= req.Sender.id %>">
+            <div class="request-item" id="request-<%= req.sender.id %>">
               <div class="request-user">
-                <% if (req.Sender.profilePic) { %>
-                  <img src="<%= req.Sender.profilePic %>" alt="">
+                <% if (req.sender.profilePic) { %>
+                  <img src="<%= req.sender.profilePic %>" alt="">
                 <% } else { %>
-                  <div class="avatar-placeholder"><%= (req.Sender.displayName || req.Sender.username || '?')[0].toUpperCase() %></div>
+                  <div class="avatar-placeholder"><%= (req.sender.displayName || req.sender.username || '?')[0].toUpperCase() %></div>
                 <% } %>
                 <div class="request-info">
-                  <span class="request-name"><%= req.Sender.displayName || req.Sender.username %></span>
-                  <span class="request-username">@<%= req.Sender.username %></span>
+                  <span class="request-name"><%= req.sender.displayName || req.sender.username %></span>
+                  <span class="request-username">@<%= req.sender.username %></span>
                 </div>
               </div>
               <div class="request-actions">
-                <button class="btn btn-accept" onclick="acceptRequest('<%= req.Sender.id %>')"><i class="fas fa-check"></i></button>
-                <button class="btn btn-reject" onclick="rejectRequest('<%= req.Sender.id %>')"><i class="fas fa-times"></i></button>
+                <button class="btn btn-accept" onclick="acceptRequest('<%= req.sender.id %>')"><i class="fas fa-check"></i></button>
+                <button class="btn btn-reject" onclick="rejectRequest('<%= req.sender.id %>')"><i class="fas fa-times"></i></button>
               </div>
             </div>
           <% }); %>

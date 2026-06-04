@@ -5,13 +5,13 @@ const FriendRequest = require('./FriendRequest');
 
 User.hasMany(Message, { as: 'SentMessages', foreignKey: 'senderId' });
 User.hasMany(Message, { as: 'ReceivedMessages', foreignKey: 'receiverId' });
-Message.belongsTo(User, { as: 'Sender', foreignKey: 'senderId' });
-Message.belongsTo(User, { as: 'Receiver', foreignKey: 'receiverId' });
+Message.belongsTo(User, { as: 'sender', foreignKey: 'senderId' });
+Message.belongsTo(User, { as: 'receiver', foreignKey: 'receiverId' });
 
 User.hasMany(FriendRequest, { as: 'SentRequests', foreignKey: 'senderId' });
 User.hasMany(FriendRequest, { as: 'ReceivedRequests', foreignKey: 'receiverId' });
-FriendRequest.belongsTo(User, { as: 'Sender', foreignKey: 'senderId' });
-FriendRequest.belongsTo(User, { as: 'Receiver', foreignKey: 'receiverId' });
+FriendRequest.belongsTo(User, { as: 'sender', foreignKey: 'senderId' });
+FriendRequest.belongsTo(User, { as: 'receiver', foreignKey: 'receiverId' });
 
 User.belongsToMany(User, {
   as: 'Friends',
