@@ -37,7 +37,8 @@ app.use(session({
   saveUninitialized: false,
   store: new pgSession({
     conString: process.env.DATABASE_URL,
-    tableName: 'session'
+    tableName: 'session',
+    createTableIfMissing: true
   }),
   cookie: {
     maxAge: 14 * 24 * 60 * 60 * 1000,
