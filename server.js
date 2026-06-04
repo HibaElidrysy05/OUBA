@@ -95,6 +95,7 @@ app.get('/', auth, async (req, res) => {
     const convMap = {};
     for (const msg of allMessages) {
       const partnerId = msg.senderId === req.session.userId ? msg.receiverId : msg.senderId;
+      if (!partnerId) continue;
       if (!convMap[partnerId]) {
         convMap[partnerId] = { lastMessage: msg, unreadCount: 0 };
       }

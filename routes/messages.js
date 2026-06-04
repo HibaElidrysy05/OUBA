@@ -75,6 +75,7 @@ router.get('/conversations', async (req, res) => {
     const convMap = {};
     for (const msg of allMessages) {
       const partnerId = msg.senderId === userId ? msg.receiverId : msg.senderId;
+      if (!partnerId) continue;
       if (!convMap[partnerId]) {
         convMap[partnerId] = msg;
       }
