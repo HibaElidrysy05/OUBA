@@ -2,7 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
 const User = require('../models/User');
+const Message = require('../models/Message');
 const FriendRequest = require('../models/FriendRequest');
+const Group = require('../models/Group');
+const GroupMember = require('../models/GroupMember');
 const auth = require('../middleware/auth');
 
 router.use(auth);
@@ -272,6 +275,34 @@ router.get('/user/:id', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Something went wrong' });
+  }
+});
+
+router.post('/delete-account', async (req, res) => {
+  try {
+    const user = await User.findByPk(req.session.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const { password } = req.body;
+    if (!password) return res.status(400).json({ success: false, error: 'Password is required' });
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) return res.status(400).json({ success: false, error: 'Incorrect password' });
+
+    const userId = user.id;
+    await Message.destroy({ where: { [Op.or]: [{ senderId: userId }, { receiverId: userId }] } });
+    await FriendRequest.destroy({ where: { [Op.or]: [{ senderId: userId }, { receiverId: userId }] } });
+    await GroupMember.destroy({ where: { userId } });
+    await Group.destroy({ where: { createdBy: userId } });
+    const sequelize = require('../config/db');
+    await sequelize.query('DELETE FROM "UserFriends" WHERE "userId" = ? OR "friendId" = ?', { replacements: [userId, userId] });
+
+    await user.destroy();
+    req.session.destroy();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
   }
 });
 

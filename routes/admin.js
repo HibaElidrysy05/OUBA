@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { User } = require('../models');
+const { User, Message, FriendRequest, Group, GroupMember } = require('../models');
+const { Op } = require('sequelize');
 const isAdmin = require('../middleware/admin');
 
 router.get('/', isAdmin, async (req, res) => {
@@ -63,6 +64,7 @@ router.post('/user/:id/delete', isAdmin, async (req, res) => {
     if (target.id === req.session.userId) {
       return res.json({ success: false, error: 'Cannot delete yourself' });
     }
+    await deleteUserData(target.id);
     await target.destroy();
     res.json({ success: true });
   } catch (error) {
@@ -70,5 +72,14 @@ router.post('/user/:id/delete', isAdmin, async (req, res) => {
     res.json({ success: false, error: 'Server error' });
   }
 });
+
+async function deleteUserData(userId) {
+  await Message.destroy({ where: { [Op.or]: [{ senderId: userId }, { receiverId: userId }] } });
+  await FriendRequest.destroy({ where: { [Op.or]: [{ senderId: userId }, { receiverId: userId }] } });
+  await GroupMember.destroy({ where: { userId } });
+  await Group.destroy({ where: { createdBy: userId } });
+  const sequelize = require('../config/db');
+  await sequelize.query('DELETE FROM "UserFriends" WHERE "userId" = ? OR "friendId" = ?', { replacements: [userId, userId] });
+}
 
 module.exports = router;

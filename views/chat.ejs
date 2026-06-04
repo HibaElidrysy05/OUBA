@@ -89,6 +89,9 @@
               <% } %>
               <span class="message-time"><%= new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></span>
               <button class="btn-reply" onclick="setReply('<%= msg.id %>', '<%= (msg.sender.displayName || msg.sender.username).replace(/'/g, "\\'") %>', '<%= (msg.content || '').replace(/'/g, "\\'").substring(0, 50).replace(/\\n/g, ' ') %>')" title="Reply"><i class="fas fa-reply"></i></button>
+              <% if (isMine) { %>
+                <button class="btn-delete-msg" onclick="deleteMsg('<%= msg.id %>', 'dm', '<%= friend.id %>')" title="Delete"><i class="fas fa-trash"></i></button>
+              <% } %>
             </div>
             <% if (isMine) { %>
               <span class="message-status <%= msg.read ? 'read' : '' %>"><%= msg.read ? 'Read' : 'Sent' %></span>
@@ -196,7 +199,7 @@ scrollToBottom();
 messagesContainer.addEventListener('click', function(e) {
   var msg = e.target.closest('.message');
   if (!msg) return;
-  if (e.target.closest('.btn-reply') || e.target.closest('.reaction-badge') || e.target.closest('.message-emoji-bar span') || e.target.closest('.reply-quote')) return;
+  if (e.target.closest('.btn-reply') || e.target.closest('.btn-delete-msg') || e.target.closest('.reaction-badge') || e.target.closest('.message-emoji-bar span') || e.target.closest('.reply-quote')) return;
   messagesContainer.querySelectorAll('.message.show-emoji-bar').forEach(function(m) {
     if (m !== msg) m.classList.remove('show-emoji-bar');
   });
@@ -242,6 +245,9 @@ socket.on('new-message', function(msg) {
   const senderName = (msg.sender.displayName || msg.sender.username).replace(/'/g, "\\'");
   const msgContent = (msg.content || '').replace(/'/g, "\\'").substring(0, 50).replace(/\n/g, ' ');
   content += '<button class="btn-reply" onclick="setReply(\'' + msg.id + '\', \'' + senderName + '\', \'' + msgContent + '\')" title="Reply"><i class="fas fa-reply"></i></button>';
+  if (isMine) {
+    content += '<button class="btn-delete-msg" onclick="deleteMsg(\'' + msg.id + '\', \'dm\', \'' + friendId + '\')" title="Delete"><i class="fas fa-trash"></i></button>';
+  }
 
   div.innerHTML = '<div class="message-content">' + content + '</div>';
   if (isMine) {
@@ -278,6 +284,16 @@ socket.on('new-message', function(msg) {
 function toggleReaction(messageId, emoji, roomType, roomId) {
   socket.emit('react-to-message', { messageId, emoji, userId, roomType, roomId });
 }
+
+function deleteMsg(messageId, roomType, roomId) {
+  if (!confirm('Delete this message?')) return;
+  socket.emit('delete-message', { messageId, userId, roomType, roomId });
+}
+
+socket.on('message-deleted', function(data) {
+  var el = document.querySelector('.message[data-message-id="' + data.messageId + '"]');
+  if (el) el.remove();
+});
 
 function emojiIcon(e) {
   var m = {'❤️':'fa-heart','😂':'fa-face-laugh-squint','😮':'fa-face-surprise','😢':'fa-face-sad-tear','😡':'fa-face-angry','👍':'fa-thumbs-up'};

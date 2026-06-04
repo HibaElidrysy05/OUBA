@@ -183,5 +183,23 @@ module.exports = (io) => {
       }
       console.log('User disconnected:', socket.id);
     });
+
+    socket.on('delete-message', async ({ messageId, userId, roomType, roomId }) => {
+      try {
+        const message = await Message.findByPk(messageId);
+        if (!message) return;
+
+        const user = await User.findByPk(userId, { attributes: ['role'] });
+        const isAdmin = user && user.role === 'admin';
+        if (message.senderId !== userId && !isAdmin) return;
+
+        await message.destroy();
+
+        const room = roomType === 'group' ? 'group:' + roomId : [userId, roomId].sort().join('-');
+        io.to(room).emit('message-deleted', { messageId });
+      } catch (error) {
+        console.error('Delete message error:', error);
+      }
+    });
   });
 };
