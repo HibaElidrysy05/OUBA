@@ -1,0 +1,90 @@
+<%- include('partials/header', { title: 'Dashboard - Ouba', activeNav: 'dashboard' }) %>
+<div class="dashboard">
+  <div class="welcome-section">
+    <div class="welcome-card">
+      <h1>Hi, <%= user.displayName || user.username %>! 🌸</h1>
+      <p>Welcome back to Ouba</p>
+    </div>
+  </div>
+
+  <div class="dashboard-grid">
+    <div class="card conversations-card">
+      <div class="card-header">
+        <h2><i class="fas fa-comments"></i> Recent Chats</h2>
+      </div>
+      <div class="card-body">
+        <% if (conversations && conversations.length > 0) { %>
+          <div class="conversation-list">
+            <% conversations.forEach(function(conv) { %>
+              <a href="/chat/<%= conv.user._id %>" class="conversation-item">
+                <div class="conversation-avatar">
+                  <% if (conv.user.profilePic) { %>
+                    <img src="<%= conv.user.profilePic %>" alt="">
+                  <% } else { %>
+                    <div class="avatar-placeholder"><%= (conv.user.displayName || conv.user.username || '?')[0].toUpperCase() %></div>
+                  <% } %>
+                </div>
+                <div class="conversation-info">
+                  <span class="conversation-name"><%= conv.user.displayName || conv.user.username %></span>
+                  <span class="conversation-preview">
+                    <% if (conv.lastMessage.fileUrl) { %>
+                      <i class="fas fa-paperclip"></i> Sent a file
+                    <% } else { %>
+                      <%= conv.lastMessage.content?.substring(0, 30) || '' %>
+                    <% } %>
+                  </span>
+                </div>
+                <div class="conversation-meta">
+                  <span class="conversation-time"><%= new Date(conv.lastMessage.createdAt).toLocaleDateString() %></span>
+                  <% if (conv.unreadCount > 0) { %>
+                    <span class="badge"><%= conv.unreadCount %></span>
+                  <% } %>
+                </div>
+              </a>
+            <% }); %>
+          </div>
+        <% } else { %>
+          <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>No conversations yet</p>
+            <p class="sub-text">Add friends to start chatting!</p>
+            <a href="/friends" class="btn btn-primary"><i class="fas fa-user-friends"></i> Find Friends</a>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="card friends-card">
+      <div class="card-header">
+        <h2><i class="fas fa-user-friends"></i> Friends</h2>
+        <a href="/friends" class="btn btn-sm">View All</a>
+      </div>
+      <div class="card-body">
+        <% if (friends && friends.length > 0) { %>
+          <div class="friends-grid">
+            <% friends.slice(0, 6).forEach(function(friend) { %>
+              <a href="/chat/<%= friend._id %>" class="friend-mini-card">
+                <% if (friend.profilePic) { %>
+                  <img src="<%= friend.profilePic %>" alt="">
+                <% } else { %>
+                  <div class="avatar-placeholder"><%= (friend.displayName || friend.username || '?')[0].toUpperCase() %></div>
+                <% } %>
+                <span><%= friend.displayName || friend.username %></span>
+              </a>
+            <% }); %>
+          </div>
+          <% if (friends.length > 6) { %>
+            <p class="more-text">+<%= friends.length - 6 %> more friends</p>
+          <% } %>
+        <% } else { %>
+          <div class="empty-state">
+            <i class="fas fa-user-plus"></i>
+            <p>No friends yet</p>
+            <a href="/friends" class="btn btn-primary"><i class="fas fa-search"></i> Find Friends</a>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('partials/footer') %>

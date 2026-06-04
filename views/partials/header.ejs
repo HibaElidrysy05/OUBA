@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title : 'Ouba' %></title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
+</head>
+<body>
+  <div class="app-container">
+    <% if (typeof currentUser !== 'undefined' && currentUser) { %>
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="logo">
+          <span class="logo-icon">🌸</span>
+          <span class="logo-text">Ouba</span>
+        </a>
+      </div>
+      <div class="sidebar-user">
+        <div class="user-avatar-small">
+          <% if (currentUser.profilePic) { %>
+            <img src="<%= currentUser.profilePic %>" alt="<%= currentUser.displayName || currentUser.username %>">
+          <% } else { %>
+            <div class="avatar-placeholder" style="background: #f8a5c2;"><%= (currentUser.displayName || currentUser.username || '?')[0].toUpperCase() %></div>
+          <% } %>
+        </div>
+        <div class="user-info-small">
+          <span class="user-name"><%= currentUser.displayName || currentUser.username %></span>
+          <span class="user-username">@<%= currentUser.username %></span>
+        </div>
+      </div>
+      <div class="sidebar-nav">
+        <a href="/" class="nav-item <%= (typeof activeNav !== 'undefined' && activeNav === 'dashboard') ? 'active' : '' %>">
+          <i class="fas fa-home"></i>
+          <span>Home</span>
+        </a>
+        <a href="/friends" class="nav-item <%= (typeof activeNav !== 'undefined' && activeNav === 'friends') ? 'active' : '' %>">
+          <i class="fas fa-user-friends"></i>
+          <span>Friends</span>
+          <% if (typeof pendingCount !== 'undefined' && pendingCount > 0) { %>
+            <span class="badge"><%= pendingCount %></span>
+          <% } %>
+        </a>
+        <a href="/profile" class="nav-item <%= (typeof activeNav !== 'undefined' && activeNav === 'profile') ? 'active' : '' %>">
+          <i class="fas fa-user"></i>
+          <span>Profile</span>
+        </a>
+      </div>
+      <div class="sidebar-footer">
+        <a href="/logout" class="nav-item">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Logout</span>
+        </a>
+      </div>
+    </nav>
+    <div class="main-content">
+    <% } else { %>
+    <div class="main-content full-width">
+    <% } %>

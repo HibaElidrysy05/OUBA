@@ -1,0 +1,78 @@
+<%- include('partials/header', { title: 'My Profile - Ouba', activeNav: 'profile' }) %>
+<div class="profile-page">
+  <div class="profile-card">
+    <div class="profile-header-section">
+      <div class="profile-pic-container">
+        <% if (user.profilePic) { %>
+          <img src="<%= user.profilePic %>" alt="Profile" id="profilePicPreview">
+        <% } else { %>
+          <div class="avatar-placeholder large" id="profilePicPreview"><%= (user.displayName || user.username)[0].toUpperCase() %></div>
+        <% } %>
+        <label for="profilePicInput" class="profile-pic-overlay">
+          <i class="fas fa-camera"></i>
+        </label>
+        <input type="file" id="profilePicInput" accept="image/*" style="display:none">
+      </div>
+      <h1><%= user.displayName || user.username %></h1>
+      <p class="username">@<%= user.username %></p>
+      <p class="email"><i class="fas fa-envelope"></i> <%= user.email %></p>
+    </div>
+
+    <% if (success) { %>
+      <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= success %></div>
+    <% } %>
+    <% if (error) { %>
+      <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <%= error %></div>
+    <% } %>
+
+    <form id="profileForm" action="/profile" method="POST" class="profile-form">
+      <div class="form-group">
+        <label for="displayName"><i class="fas fa-tag"></i> Display Name</label>
+        <input type="text" id="displayName" name="displayName" value="<%= user.displayName || '' %>" placeholder="Your display name">
+      </div>
+      <div class="form-group">
+        <label for="bio"><i class="fas fa-quote-right"></i> Bio</label>
+        <textarea id="bio" name="bio" rows="3" placeholder="Tell the world about yourself..." maxlength="200"><%= user.bio || '' %></textarea>
+        <span class="char-count">0/200</span>
+      </div>
+
+      <div class="form-divider">
+        <span>Change Password (optional)</span>
+      </div>
+
+      <div class="form-group">
+        <label for="currentPassword"><i class="fas fa-lock"></i> Current Password</label>
+        <input type="password" id="currentPassword" name="currentPassword" placeholder="Enter current password">
+      </div>
+      <div class="form-group">
+        <label for="newPassword"><i class="fas fa-key"></i> New Password</label>
+        <input type="password" id="newPassword" name="newPassword" placeholder="Enter new password (min 6 chars)" minlength="6">
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full"><i class="fas fa-save"></i> Save Changes</button>
+    </form>
+  </div>
+</div>
+
+<script>
+document.getElementById('profilePicInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('profilePic', file);
+  fetch('/upload/profile-pic', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('profilePicPreview').outerHTML = `<img src="${data.fileUrl}?t=${Date.now()}" alt="Profile" id="profilePicPreview">`;
+        const user = <%= JSON.stringify(user) %>;
+        user.profilePic = data.fileUrl;
+      }
+    });
+});
+
+document.getElementById('bio').addEventListener('input', function() {
+  document.querySelector('.char-count').textContent = `${this.value.length}/200`;
+});
+</script>
+<%- include('partials/footer') %>

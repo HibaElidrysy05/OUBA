@@ -1,0 +1,192 @@
+<%- include('partials/header', { title: 'Friends - Ouba', activeNav: 'friends' }) %>
+<div class="friends-page">
+  <div class="friends-header">
+    <h1><i class="fas fa-user-friends"></i> Friends</h1>
+  </div>
+
+  <div class="search-section">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="searchInput" placeholder="Search for friends..." autocomplete="off">
+    </div>
+    <div id="searchResults" class="search-results"></div>
+  </div>
+
+  <% if (pendingRequests && pendingRequests.length > 0) { %>
+    <div class="card pending-card">
+      <div class="card-header">
+        <h2><i class="fas fa-clock"></i> Pending Requests (<%= pendingRequests.length %>)</h2>
+      </div>
+      <div class="card-body">
+        <div class="request-list">
+          <% pendingRequests.forEach(function(req) { %>
+            <div class="request-item" id="request-<%= req.from._id %>">
+              <div class="request-user">
+                <% if (req.from.profilePic) { %>
+                  <img src="<%= req.from.profilePic %>" alt="">
+                <% } else { %>
+                  <div class="avatar-placeholder"><%= (req.from.displayName || req.from.username || '?')[0].toUpperCase() %></div>
+                <% } %>
+                <div class="request-info">
+                  <span class="request-name"><%= req.from.displayName || req.from.username %></span>
+                  <span class="request-username">@<%= req.from.username %></span>
+                </div>
+              </div>
+              <div class="request-actions">
+                <button class="btn btn-accept" onclick="acceptRequest('<%= req.from._id %>')"><i class="fas fa-check"></i></button>
+                <button class="btn btn-reject" onclick="rejectRequest('<%= req.from._id %>')"><i class="fas fa-times"></i></button>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
+  <div class="card">
+    <div class="card-header">
+      <h2><i class="fas fa-users"></i> My Friends (<%= friends.length %>)</h2>
+    </div>
+    <div class="card-body">
+      <% if (friends && friends.length > 0) { %>
+        <div class="friends-list">
+          <% friends.forEach(function(friend) { %>
+            <a href="/chat/<%= friend._id %>" class="friend-item">
+              <div class="friend-avatar">
+                <% if (friend.profilePic) { %>
+                  <img src="<%= friend.profilePic %>" alt="">
+                <% } else { %>
+                  <div class="avatar-placeholder"><%= (friend.displayName || friend.username || '?')[0].toUpperCase() %></div>
+                <% } %>
+              </div>
+              <div class="friend-info">
+                <span class="friend-name"><%= friend.displayName || friend.username %></span>
+                <span class="friend-username">@<%= friend.username %></span>
+                <% if (friend.bio) { %>
+                  <span class="friend-bio"><%= friend.bio.substring(0, 50) %></span>
+                <% } %>
+              </div>
+              <i class="fas fa-chevron-right"></i>
+            </a>
+          <% }); %>
+        </div>
+      <% } else { %>
+        <div class="empty-state">
+          <i class="fas fa-user-plus"></i>
+          <p>No friends yet</p>
+          <p class="sub-text">Search for users above to add friends!</p>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<script>
+let searchTimeout;
+
+document.getElementById('searchInput').addEventListener('input', function() {
+  clearTimeout(searchTimeout);
+  const query = this.value.trim();
+  if (query.length < 1) {
+    document.getElementById('searchResults').innerHTML = '';
+    document.getElementById('searchResults').classList.remove('show');
+    return;
+  }
+  searchTimeout = setTimeout(() => {
+    fetch(`/search?q=${encodeURIComponent(query)}`)
+      .then(r => r.json())
+      .then(data => {
+        const results = document.getElementById('searchResults');
+        if (data.users.length === 0) {
+          results.innerHTML = '<div class="search-empty">No users found</div>';
+        } else {
+          results.innerHTML = data.users.map(u => {
+            let actionBtn = '';
+            if (u.isFriend) {
+              actionBtn = '<span class="friend-badge"><i class="fas fa-check"></i> Friends</span>';
+            } else if (u.hasPendingReq) {
+              actionBtn = '<span class="friend-badge pending"><i class="fas fa-clock"></i> Pending</span>';
+            } else if (u.gotRequest) {
+              actionBtn = `
+                <button class="btn btn-accept btn-sm" onclick="acceptRequest('${u._id}')"><i class="fas fa-check"></i></button>
+                <button class="btn btn-reject btn-sm" onclick="rejectRequest('${u._id}')"><i class="fas fa-times"></i></button>
+              `;
+            } else {
+              actionBtn = `<button class="btn btn-primary btn-sm" onclick="sendRequest('${u._id}')"><i class="fas fa-user-plus"></i> Add</button>`;
+            }
+            return `
+              <div class="search-result-item">
+                <div class="search-result-avatar">
+                  ${u.profilePic ? `<img src="${u.profilePic}" alt="">` : `<div class="avatar-placeholder">${(u.displayName || u.username || '?')[0].toUpperCase()}</div>`}
+                </div>
+                <div class="search-result-info">
+                  <span class="search-result-name">${u.displayName || u.username}</span>
+                  <span class="search-result-username">@${u.username}</span>
+                </div>
+                <div class="search-result-action">${actionBtn}</div>
+              </div>
+            `;
+          }).join('');
+        }
+        results.classList.add('show');
+      });
+  }, 300);
+});
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.search-section')) {
+    document.getElementById('searchResults').classList.remove('show');
+  }
+});
+
+function sendRequest(userId) {
+  fetch(`/friend-request/${userId}`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showToast('Friend request sent! 💕');
+        document.querySelector(`[onclick="sendRequest('${userId}')"]`).outerHTML = '<span class="friend-badge pending"><i class="fas fa-clock"></i> Sent</span>';
+      } else {
+        showToast(data.error || 'Something went wrong', 'error');
+      }
+    });
+}
+
+function acceptRequest(userId) {
+  fetch(`/accept-request/${userId}`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        const el = document.getElementById(`request-${userId}`);
+        if (el) el.remove();
+        showToast('Friend added! 🎉');
+        setTimeout(() => location.reload(), 1000);
+      }
+    });
+}
+
+function rejectRequest(userId) {
+  fetch(`/reject-request/${userId}`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        const el = document.getElementById(`request-${userId}`);
+        if (el) el.remove();
+        showToast('Request declined');
+      }
+    });
+}
+
+function showToast(msg, type = 'success') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+</script>
+<%- include('partials/footer') %>

@@ -1,0 +1,304 @@
+<%- include('partials/header', { title: title, activeNav: 'dashboard' }) %>
+<div class="chat-page">
+  <div class="chat-sidebar">
+    <div class="chat-sidebar-header">
+      <h2><i class="fas fa-comments"></i> Chats</h2>
+    </div>
+    <div class="chat-sidebar-list">
+      <% if (friends && friends.length > 0) { %>
+        <% friends.forEach(function(f) { %>
+          <a href="/chat/<%= f._id %>" class="chat-sidebar-item <%= f._id.toString() === friend._id.toString() ? 'active' : '' %>">
+            <div class="chat-sidebar-avatar">
+              <% if (f.profilePic) { %>
+                <img src="<%= f.profilePic %>" alt="">
+              <% } else { %>
+                <div class="avatar-placeholder"><%= (f.displayName || f.username || '?')[0].toUpperCase() %></div>
+              <% } %>
+            </div>
+            <div class="chat-sidebar-info">
+              <span class="chat-sidebar-name"><%= f.displayName || f.username %></span>
+              <span class="chat-sidebar-username">@<%= f.username %></span>
+            </div>
+          </a>
+        <% }); %>
+      <% } else { %>
+        <div class="empty-state">
+          <i class="fas fa-user-friends"></i>
+          <p>No friends yet</p>
+          <a href="/friends" class="btn btn-primary btn-sm">Find Friends</a>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="chat-main">
+    <div class="chat-header">
+      <div class="chat-header-user">
+        <% if (friend.profilePic) { %>
+          <img src="<%= friend.profilePic %>" alt="">
+        <% } else { %>
+          <div class="avatar-placeholder"><%= (friend.displayName || friend.username || '?')[0].toUpperCase() %></div>
+        <% } %>
+        <div class="chat-header-info">
+          <h3><%= friend.displayName || friend.username %></h3>
+          <span class="chat-status" id="chatStatus">
+            <span class="status-dot offline"></span> Offline
+          </span>
+        </div>
+      </div>
+      <div class="chat-header-actions">
+        <a href="/friends" class="btn btn-sm"><i class="fas fa-arrow-left"></i></a>
+      </div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+      <% if (messages && messages.length > 0) { %>
+        <% messages.forEach(function(msg) { %>
+          <% const isMine = msg.sender._id.toString() === user._id.toString(); %>
+          <div class="message <%= isMine ? 'message-sent' : 'message-received' %>" data-message-id="<%= msg._id %>">
+            <div class="message-content">
+              <% if (msg.fileUrl) { %>
+                <div class="message-file">
+                  <% if (msg.fileType && msg.fileType.startsWith('image/')) { %>
+                    <img src="<%= msg.fileUrl %>" alt="<%= msg.fileName || 'Image' %>" class="message-image" onclick="window.open(this.src)">
+                  <% } else if (msg.fileType && msg.fileType.startsWith('audio/')) { %>
+                    <audio controls src="<%= msg.fileUrl %>"></audio>
+                  <% } else { %>
+                    <div class="file-attachment">
+                      <i class="fas fa-file"></i>
+                      <div class="file-info">
+                        <a href="<%= msg.fileUrl %>" target="_blank" class="file-name"><%= msg.fileName || 'File' %></a>
+                        <% if (msg.fileSize) { %>
+                          <span class="file-size"><%= (msg.fileSize / 1024 / 1024).toFixed(1) %> MB</span>
+                        <% } %>
+                      </div>
+                      <a href="<%= msg.fileUrl %>" download class="file-download"><i class="fas fa-download"></i></a>
+                    </div>
+                  <% } %>
+                </div>
+              <% } %>
+              <% if (msg.content) { %>
+                <p><%= msg.content %></p>
+              <% } %>
+              <span class="message-time"><%= new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></span>
+            </div>
+          </div>
+        <% }); %>
+      <% } else { %>
+        <div class="empty-state chat-empty">
+          <i class="fas fa-comment-dots"></i>
+          <p>No messages yet</p>
+          <p class="sub-text">Say hello to <%= friend.displayName || friend.username %>! 💕</p>
+        </div>
+      <% } %>
+    </div>
+
+    <div class="chat-input">
+      <div class="chat-input-actions">
+        <button type="button" class="btn-input" id="fileBtn" title="Attach file">
+          <i class="fas fa-paperclip"></i>
+        </button>
+        <input type="file" id="fileInput" accept="image/*,audio/*,video/*,application/*,text/*" style="display:none">
+      </div>
+      <div class="chat-input-field">
+        <textarea id="messageInput" rows="1" placeholder="Type a message..." autocomplete="off"></textarea>
+      </div>
+      <button type="button" class="btn-send" id="sendBtn" title="Send message" disabled>
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+    <div id="uploadPreview" class="upload-preview" style="display:none">
+      <div class="preview-info">
+        <i class="fas fa-file"></i>
+        <span id="previewFileName"></span>
+      </div>
+      <button type="button" class="preview-remove" onclick="clearFilePreview()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="typing-indicator" id="typingIndicator" style="display:none">
+      <span></span><span></span><span></span> typing...
+    </div>
+  </div>
+</div>
+
+<script>
+const socket = io();
+const userId = '<%= user._id %>';
+const friendId = '<%= friend._id %>';
+let selectedFile = null;
+
+socket.emit('user-online', userId);
+socket.emit('join-chat', { userId, friendId });
+
+const messagesContainer = document.getElementById('chatMessages');
+const messageInput = document.getElementById('messageInput');
+const sendBtn = document.getElementById('sendBtn');
+const fileBtn = document.getElementById('fileBtn');
+const fileInput = document.getElementById('fileInput');
+const uploadPreview = document.getElementById('uploadPreview');
+const previewFileName = document.getElementById('previewFileName');
+const typingIndicator = document.getElementById('typingIndicator');
+const chatStatus = document.getElementById('chatStatus');
+
+let typingTimeout;
+
+function scrollToBottom() {
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+scrollToBottom();
+
+socket.on('new-message', function(msg) {
+  const isMine = msg.sender._id === userId;
+  const emptyState = messagesContainer.querySelector('.chat-empty');
+  if (emptyState) emptyState.remove();
+
+  const div = document.createElement('div');
+  div.className = `message ${isMine ? 'message-sent' : 'message-received'}`;
+  div.dataset.messageId = msg._id;
+
+  let content = '';
+  if (msg.fileUrl) {
+    content += '<div class="message-file">';
+    if (msg.fileType && msg.fileType.startsWith('image/')) {
+      content += `<img src="${msg.fileUrl}" alt="${msg.fileName || 'Image'}" class="message-image" onclick="window.open(this.src)">`;
+    } else if (msg.fileType && msg.fileType.startsWith('audio/')) {
+      content += `<audio controls src="${msg.fileUrl}"></audio>`;
+    } else {
+      content += `<div class="file-attachment"><i class="fas fa-file"></i><div class="file-info"><a href="${msg.fileUrl}" target="_blank" class="file-name">${msg.fileName || 'File'}</a>${msg.fileSize ? `<span class="file-size">${(msg.fileSize / 1024 / 1024).toFixed(1)} MB</span>` : ''}</div><a href="${msg.fileUrl}" download class="file-download"><i class="fas fa-download"></i></a></div>`;
+    }
+    content += '</div>';
+  }
+  if (msg.content) {
+    content += `<p>${msg.content}</p>`;
+  }
+  const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  content += `<span class="message-time">${time}</span>`;
+
+  div.innerHTML = `<div class="message-content">${content}</div>`;
+  messagesContainer.appendChild(div);
+  scrollToBottom();
+});
+
+socket.on('user-typing', function(data) {
+  if (data.userId === friendId) {
+    if (data.isTyping) {
+      typingIndicator.style.display = 'flex';
+    } else {
+      typingIndicator.style.display = 'none';
+    }
+  }
+});
+
+socket.on('user-status', function(data) {
+  if (data.userId === friendId) {
+    const dot = chatStatus.querySelector('.status-dot');
+    if (data.status === 'online') {
+      dot.className = 'status-dot online';
+      chatStatus.innerHTML = '<span class="status-dot online"></span> Online';
+    } else {
+      dot.className = 'status-dot offline';
+      chatStatus.innerHTML = '<span class="status-dot offline"></span> Offline';
+    }
+  }
+});
+
+messageInput.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+  sendBtn.disabled = !this.value.trim() && !selectedFile;
+
+  socket.emit('typing', { userId, friendId, isTyping: true });
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => {
+    socket.emit('typing', { userId, friendId, isTyping: false });
+  }, 2000);
+});
+
+sendBtn.addEventListener('click', sendMessage);
+messageInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+fileBtn.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  selectedFile = file;
+  previewFileName.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+  uploadPreview.style.display = 'flex';
+  sendBtn.disabled = false;
+});
+
+function clearFilePreview() {
+  selectedFile = null;
+  fileInput.value = '';
+  uploadPreview.style.display = 'none';
+  sendBtn.disabled = !messageInput.value.trim();
+}
+
+function sendMessage() {
+  const content = messageInput.value.trim();
+
+  if (!content && !selectedFile) return;
+
+  if (selectedFile) {
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    fetch('/upload/file', { method: 'POST', body: formData })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          socket.emit('send-message', {
+            senderId: userId,
+            receiverId: friendId,
+            content: content,
+            fileUrl: data.fileUrl,
+            fileType: data.fileType,
+            fileName: data.fileName,
+            fileSize: data.fileSize
+          });
+          clearFilePreview();
+        } else {
+          showToast(data.error || 'Upload failed', 'error');
+        }
+      });
+    messageInput.value = '';
+    messageInput.style.height = 'auto';
+    sendBtn.disabled = true;
+    return;
+  }
+
+  socket.emit('send-message', {
+    senderId: userId,
+    receiverId: friendId,
+    content: content,
+    fileUrl: null,
+    fileType: null,
+    fileName: null,
+    fileSize: null
+  });
+
+  messageInput.value = '';
+  messageInput.style.height = 'auto';
+  sendBtn.disabled = true;
+  socket.emit('typing', { userId, friendId, isTyping: false });
+}
+
+function showToast(msg, type = 'success') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+</script>
+<%- include('partials/footer') %>
