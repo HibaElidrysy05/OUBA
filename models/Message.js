@@ -7,6 +7,10 @@ const Message = sequelize.define('Message', {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
+  groupId: {
+    type: DataTypes.UUID,
+    allowNull: true
+  },
   content: {
     type: DataTypes.TEXT,
     defaultValue: ''

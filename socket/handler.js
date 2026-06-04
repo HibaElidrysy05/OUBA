@@ -1,5 +1,5 @@
-const Message = require('../models/Message');
-const User = require('../models/User');
+const { Message, User, Group, GroupMember } = require('../models');
+const { Op } = require('sequelize');
 
 const onlineUsers = new Map();
 
@@ -10,7 +10,10 @@ module.exports = (io) => {
     socket.on('user-online', (userId) => {
       onlineUsers.set(userId.toString(), socket.id);
       socket.userId = userId.toString();
-      io.emit('user-status', { userId: userId.toString(), status: 'online' });
+      socket.join('global');
+      const onlineArray = Array.from(onlineUsers.keys());
+      socket.emit('initial-status', onlineArray);
+      socket.to('global').emit('user-status', { userId: userId.toString(), status: 'online' });
     });
 
     socket.on('join-chat', ({ userId, friendId }) => {
@@ -19,9 +22,20 @@ module.exports = (io) => {
       socket.currentRoom = room;
     });
 
+    socket.on('join-group', (groupId) => {
+      const room = `group:${groupId}`;
+      socket.join(room);
+      socket.currentRoom = room;
+    });
+
     socket.on('typing', ({ userId, friendId, isTyping }) => {
       const room = [userId, friendId].sort().join('-');
       io.to(room).emit('user-typing', { userId, isTyping });
+    });
+
+    socket.on('group-typing', ({ userId, groupId, isTyping }) => {
+      const room = `group:${groupId}`;
+      socket.to(room).emit('group-typing', { userId, isTyping });
     });
 
     socket.on('send-message', async (data, callback) => {
@@ -51,13 +65,46 @@ module.exports = (io) => {
         if (receiverSocketId) {
           io.to(receiverSocketId).emit('notification', {
             type: 'message',
-            from: data.senderId
+            from: data.senderId,
+            sender: populatedMessage.sender,
+            content: content || (fileUrl ? 'Sent a file' : ''),
+            chatUrl: `/chat/${data.senderId}`
           });
         }
 
         if (callback) callback({ success: true, message: populatedMessage });
       } catch (error) {
         console.error('Send message error:', error);
+        if (callback) callback({ error: 'Failed to send message' });
+      }
+    });
+
+    socket.on('send-group-message', async (data, callback) => {
+      try {
+        const { groupId, content, fileUrl, fileType, fileName, fileSize } = data;
+
+        const message = await Message.create({
+          senderId: data.senderId,
+          groupId,
+          content: content || '',
+          fileUrl: fileUrl || null,
+          fileType: fileType || null,
+          fileName: fileName || null,
+          fileSize: fileSize || null
+        });
+
+        const populatedMessage = await Message.findByPk(message.id, {
+          include: [
+            { association: 'sender', attributes: ['id', 'username', 'displayName', 'profilePic'] }
+          ]
+        });
+
+        const room = `group:${groupId}`;
+        io.to(room).emit('new-group-message', populatedMessage);
+
+        if (callback) callback({ success: true, message: populatedMessage });
+      } catch (error) {
+        console.error('Send group message error:', error);
         if (callback) callback({ error: 'Failed to send message' });
       }
     });
@@ -76,7 +123,7 @@ module.exports = (io) => {
     socket.on('disconnect', () => {
       if (socket.userId) {
         onlineUsers.delete(socket.userId);
-        io.emit('user-status', { userId: socket.userId, status: 'offline' });
+        io.to('global').emit('user-status', { userId: socket.userId, status: 'offline' });
       }
       console.log('User disconnected:', socket.id);
     });

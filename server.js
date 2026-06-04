@@ -137,6 +137,7 @@ app.get('/', auth, async (req, res) => {
 
 app.use('/', require('./routes/users'));
 app.use('/', require('./routes/messages'));
+app.use('/', require('./routes/groups'));
 app.use('/upload', require('./routes/upload'));
 
 socketHandler(io);

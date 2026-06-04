@@ -2,6 +2,8 @@ const sequelize = require('../config/db');
 const User = require('./User');
 const Message = require('./Message');
 const FriendRequest = require('./FriendRequest');
+const Group = require('./Group');
+const GroupMember = require('./GroupMember');
 
 User.hasMany(Message, { as: 'SentMessages', foreignKey: 'senderId' });
 User.hasMany(Message, { as: 'ReceivedMessages', foreignKey: 'receiverId' });
@@ -21,6 +23,32 @@ User.belongsToMany(User, {
   timestamps: false
 });
 
+Group.belongsTo(User, { as: 'creator', foreignKey: 'createdBy' });
+User.hasMany(Group, { as: 'CreatedGroups', foreignKey: 'createdBy' });
+
+Group.hasMany(GroupMember, { as: 'members', foreignKey: 'groupId' });
+GroupMember.belongsTo(Group, { foreignKey: 'groupId' });
+
+GroupMember.belongsTo(User, { as: 'user', foreignKey: 'userId' });
+User.hasMany(GroupMember, { as: 'GroupMemberships', foreignKey: 'userId' });
+
+Group.belongsToMany(User, {
+  as: 'Participants',
+  through: GroupMember,
+  foreignKey: 'groupId',
+  otherKey: 'userId'
+});
+
+User.belongsToMany(Group, {
+  as: 'Groups',
+  through: GroupMember,
+  foreignKey: 'userId',
+  otherKey: 'groupId'
+});
+
+Message.belongsTo(Group, { foreignKey: 'groupId' });
+Group.hasMany(Message, { as: 'Messages', foreignKey: 'groupId' });
+
 const syncDB = async () => {
   try {
     await sequelize.sync({ alter: true });
@@ -30,4 +58,4 @@ const syncDB = async () => {
   }
 };
 
-module.exports = { User, Message, FriendRequest, syncDB };
+module.exports = { User, Message, FriendRequest, Group, GroupMember, syncDB };

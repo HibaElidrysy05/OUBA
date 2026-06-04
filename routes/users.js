@@ -18,10 +18,25 @@ router.get('/profile', async (req, res) => {
 
 router.post('/profile', async (req, res) => {
   try {
-    const { displayName, bio, currentPassword, newPassword } = req.body;
+    const { username, displayName, bio, currentPassword, newPassword } = req.body;
     const user = await User.findByPk(req.session.userId);
 
     const updates = {};
+
+    if (username && username !== user.username) {
+      const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+      if (!usernameRegex.test(username)) {
+        const updatedUser = await User.findByPk(req.session.userId);
+        return res.render('profile', { title: 'My Profile - Ouba', user: updatedUser, error: 'Username must be 3-20 characters (letters, numbers, underscores)', success: null });
+      }
+      const existing = await User.findOne({ where: { username, id: { [Op.ne]: req.session.userId } } });
+      if (existing) {
+        const updatedUser = await User.findByPk(req.session.userId);
+        return res.render('profile', { title: 'My Profile - Ouba', user: updatedUser, error: 'Username is already taken', success: null });
+      }
+      updates.username = username;
+    }
+
     if (displayName) updates.displayName = displayName;
     if (bio !== undefined) updates.bio = bio;
 

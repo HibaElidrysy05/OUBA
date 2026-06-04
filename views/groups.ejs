@@ -1,0 +1,103 @@
+<%- include('partials/header', { title: 'Groups - Ouba', activeNav: 'groups' }) %>
+<div class="groups-page">
+  <div class="groups-header">
+    <h1><i class="fas fa-users"></i> Groups</h1>
+    <button class="btn btn-primary" id="createGroupBtn"><i class="fas fa-plus"></i> Create Group</button>
+  </div>
+
+  <% if (success) { %>
+    <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= success %></div>
+  <% } %>
+  <% if (error) { %>
+    <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <%= error %></div>
+  <% } %>
+
+  <div class="card">
+    <div class="card-body">
+      <% if (groups && groups.length > 0) { %>
+        <div class="groups-list">
+          <% groups.forEach(function(g) { %>
+            <a href="/group/<%= g.id %>" class="group-item">
+              <div class="group-avatar">
+                <div class="avatar-placeholder group-avatar-placeholder"><%= g.name[0].toUpperCase() %></div>
+              </div>
+              <div class="group-info">
+                <span class="group-name"><%= g.name %></span>
+                <span class="group-member-count"><i class="fas fa-user"></i> Created <%= new Date(g.createdAt).toLocaleDateString() %></span>
+              </div>
+              <i class="fas fa-chevron-right"></i>
+            </a>
+          <% }); %>
+        </div>
+      <% } else { %>
+        <div class="empty-state">
+          <i class="fas fa-users"></i>
+          <p>No groups yet</p>
+          <p class="sub-text">Create a group to chat with multiple friends at once!</p>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="createGroupModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Create Group</h2>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="groupName">Group Name</label>
+        <input type="text" id="groupName" placeholder="Enter group name..." maxlength="100">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createGroup()">Create</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('createGroupBtn').addEventListener('click', () => {
+  document.getElementById('createGroupModal').style.display = 'flex';
+});
+
+function closeModal() {
+  document.getElementById('createGroupModal').style.display = 'none';
+}
+
+function createGroup() {
+  const name = document.getElementById('groupName').value.trim();
+  if (!name) return showToast('Please enter a group name', 'error');
+
+  fetch('/groups', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        window.location.href = `/group/${data.groupId}`;
+      } else {
+        showToast(data.error || 'Failed to create group', 'error');
+      }
+    });
+}
+
+document.getElementById('groupName').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') createGroup();
+});
+
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.classList.add('show'), 10);
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
+}
+</script>
+<%- include('partials/footer') %>

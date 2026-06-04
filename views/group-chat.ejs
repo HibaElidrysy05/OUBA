@@ -1,33 +1,31 @@
-<%- include('partials/header', { title: title, activeNav: 'dashboard' }) %>
+<%- include('partials/header', { title: `${group.name} - Ouba`, activeNav: 'groups' }) %>
 <div class="chat-page">
   <div class="chat-sidebar">
     <div class="chat-sidebar-header">
-      <h2><i class="fas fa-comments"></i> Chats</h2>
+      <h2><i class="fas fa-users"></i> Members (<%= members.length %>)</h2>
     </div>
     <div class="chat-sidebar-list">
-      <% if (friends && friends.length > 0) { %>
-        <% friends.forEach(function(f) { %>
-          <a href="/chat/<%= f.id %>" class="chat-sidebar-item <%= f.id === friend.id ? 'active' : '' %>">
-            <div class="chat-sidebar-avatar">
-              <% if (f.profilePic) { %>
-                <img src="<%= f.profilePic %>" alt="">
-              <% } else { %>
-                <div class="avatar-placeholder"><%= (f.displayName || f.username || '?')[0].toUpperCase() %></div>
-              <% } %>
-              <span class="status-dot offline" data-user-id="<%= f.id %>"></span>
-            </div>
-            <div class="chat-sidebar-info">
-              <span class="chat-sidebar-name"><%= f.displayName || f.username %></span>
-              <span class="chat-sidebar-username">@<%= f.username %></span>
-            </div>
-          </a>
-        <% }); %>
-      <% } else { %>
-        <div class="empty-state">
-          <i class="fas fa-user-friends"></i>
-          <p>No friends yet</p>
-          <a href="/friends" class="btn btn-primary btn-sm">Find Friends</a>
+      <% members.forEach(function(m) { %>
+        <div class="chat-sidebar-item">
+          <div class="chat-sidebar-avatar">
+            <% if (m.user.profilePic) { %>
+              <img src="<%= m.user.profilePic %>" alt="">
+            <% } else { %>
+              <div class="avatar-placeholder" style="width:36px;height:36px;font-size:14px"><%= (m.user.displayName || m.user.username || '?')[0].toUpperCase() %></div>
+            <% } %>
+            <span class="status-dot offline" data-user-id="<%= m.user.id %>"></span>
+          </div>
+          <div class="chat-sidebar-info">
+            <span class="chat-sidebar-name"><%= m.user.displayName || m.user.username %></span>
+            <span class="chat-sidebar-username">
+              @<%= m.user.username %>
+              <% if (m.role === 'admin') { %><span class="admin-badge">admin</span><% } %>
+            </span>
+          </div>
         </div>
+      <% }); %>
+      <% if (members.some(m => m.userId === user.id && m.role === 'admin')) { %>
+        <button class="btn btn-sm btn-full" id="addMemberBtn" style="margin-top:8px"><i class="fas fa-user-plus"></i> Add Member</button>
       <% } %>
     </div>
   </div>
@@ -35,29 +33,26 @@
   <div class="chat-main">
     <div class="chat-header">
       <div class="chat-header-user">
-        <% if (friend.profilePic) { %>
-          <img src="<%= friend.profilePic %>" alt="">
-        <% } else { %>
-          <div class="avatar-placeholder"><%= (friend.displayName || friend.username || '?')[0].toUpperCase() %></div>
-        <% } %>
+        <div class="avatar-placeholder" style="width:44px;height:44px;font-size:18px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--white);background:var(--pink);border-radius:50%"><%= group.name[0].toUpperCase() %></div>
         <div class="chat-header-info">
-          <h3><%= friend.displayName || friend.username %></h3>
-          <span class="chat-status" id="chatStatus">
-            <span class="status-dot offline"></span> Offline
-          </span>
+          <h3><%= group.name %></h3>
+          <span class="chat-status"><%= members.length %> members</span>
         </div>
       </div>
       <div class="chat-header-actions">
-        <a href="/friends" class="btn btn-sm"><i class="fas fa-arrow-left"></i></a>
+        <a href="/groups" class="btn btn-sm"><i class="fas fa-arrow-left"></i></a>
       </div>
     </div>
 
     <div class="chat-messages" id="chatMessages">
       <% if (messages && messages.length > 0) { %>
         <% messages.forEach(function(msg) { %>
-          <% const isMine = msg.sender.id === user.id; %>
+          <% const isMine = msg.senderId === user.id; %>
           <div class="message <%= isMine ? 'message-sent' : 'message-received' %>" data-message-id="<%= msg.id %>">
             <div class="message-content">
+              <% if (!isMine) { %>
+                <div class="message-sender-name"><%= msg.sender.displayName || msg.sender.username %></div>
+              <% } %>
               <% if (msg.fileUrl) { %>
                 <div class="message-file">
                   <% if (msg.fileType && msg.fileType.startsWith('image/')) { %>
@@ -69,18 +64,14 @@
                       <i class="fas fa-file"></i>
                       <div class="file-info">
                         <a href="<%= msg.fileUrl %>" target="_blank" class="file-name"><%= msg.fileName || 'File' %></a>
-                        <% if (msg.fileSize) { %>
-                          <span class="file-size"><%= (msg.fileSize / 1024 / 1024).toFixed(1) %> MB</span>
-                        <% } %>
+                        <% if (msg.fileSize) { %><span class="file-size"><%= (msg.fileSize / 1024 / 1024).toFixed(1) %> MB</span><% } %>
                       </div>
                       <a href="<%= msg.fileUrl %>" download class="file-download"><i class="fas fa-download"></i></a>
                     </div>
                   <% } %>
                 </div>
               <% } %>
-              <% if (msg.content) { %>
-                <p><%= msg.content %></p>
-              <% } %>
+              <% if (msg.content) { %><p><%= msg.content %></p><% } %>
               <span class="message-time"><%= new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></span>
             </div>
           </div>
@@ -89,24 +80,20 @@
         <div class="empty-state chat-empty">
           <i class="fas fa-comment-dots"></i>
           <p>No messages yet</p>
-          <p class="sub-text">Say hello to <%= friend.displayName || friend.username %>! 💕</p>
+          <p class="sub-text">Start the conversation!</p>
         </div>
       <% } %>
     </div>
 
     <div class="chat-input">
       <div class="chat-input-actions">
-        <button type="button" class="btn-input" id="fileBtn" title="Attach file">
-          <i class="fas fa-paperclip"></i>
-        </button>
+        <button type="button" class="btn-input" id="fileBtn" title="Attach file"><i class="fas fa-paperclip"></i></button>
         <input type="file" id="fileInput" accept="image/*,audio/*,video/*,application/*,text/*" style="display:none">
       </div>
       <div class="chat-input-field">
         <textarea id="messageInput" rows="1" placeholder="Type a message..." autocomplete="off"></textarea>
       </div>
-      <button type="button" class="btn-send" id="sendBtn" title="Send message" disabled>
-        <i class="fas fa-paper-plane"></i>
-      </button>
+      <button type="button" class="btn-send" id="sendBtn" title="Send message" disabled><i class="fas fa-paper-plane"></i></button>
     </div>
     <div id="uploadPreview" class="upload-preview" style="display:none">
       <div class="preview-info">
@@ -121,19 +108,34 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="addMemberModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Add Member</h2>
+      <button class="modal-close" onclick="closeAddMember()">&times;</button>
+    </div>
+    <div class="modal-body" id="addMemberBody">
+      <p>Loading friends...</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeAddMember()">Done</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const socket = window.appSocket || io({ transports: ['websocket', 'polling'] });
 const userId = '<%= user.id %>';
-const friendId = '<%= friend.id %>';
+const groupId = '<%= group.id %>';
 let selectedFile = null;
 
 if (socket.connected) {
   socket.emit('user-online', userId);
-  socket.emit('join-chat', { userId, friendId });
+  socket.emit('join-group', groupId);
 } else {
   socket.on('connect', () => {
     socket.emit('user-online', userId);
-    socket.emit('join-chat', { userId, friendId });
+    socket.emit('join-group', groupId);
   });
 }
 
@@ -145,7 +147,6 @@ const fileInput = document.getElementById('fileInput');
 const uploadPreview = document.getElementById('uploadPreview');
 const previewFileName = document.getElementById('previewFileName');
 const typingIndicator = document.getElementById('typingIndicator');
-const chatStatus = document.getElementById('chatStatus');
 
 let typingTimeout;
 
@@ -155,13 +156,8 @@ function scrollToBottom() {
 
 scrollToBottom();
 
-const unreadIds = Array.from(document.querySelectorAll('.message-received[data-message-id]')).map(el => el.dataset.messageId);
-if (unreadIds.length > 0) {
-  socket.emit('mark-read', { messageIds: unreadIds });
-}
-
-socket.on('new-message', function(msg) {
-  const isMine = msg.sender.id === userId;
+socket.on('new-group-message', function(msg) {
+  const isMine = msg.senderId === userId;
   const emptyState = messagesContainer.querySelector('.chat-empty');
   if (emptyState) emptyState.remove();
 
@@ -170,6 +166,9 @@ socket.on('new-message', function(msg) {
   div.dataset.messageId = msg.id;
 
   let content = '';
+  if (!isMine) {
+    content += `<div class="message-sender-name">${msg.sender.displayName || msg.sender.username}</div>`;
+  }
   if (msg.fileUrl) {
     content += '<div class="message-file">';
     if (msg.fileType && msg.fileType.startsWith('image/')) {
@@ -181,40 +180,18 @@ socket.on('new-message', function(msg) {
     }
     content += '</div>';
   }
-  if (msg.content) {
-    content += `<p>${msg.content}</p>`;
-  }
+  if (msg.content) content += `<p>${msg.content}</p>`;
   const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   content += `<span class="message-time">${time}</span>`;
 
   div.innerHTML = `<div class="message-content">${content}</div>`;
   messagesContainer.appendChild(div);
   scrollToBottom();
-  if (!isMine && msg.id) {
-    socket.emit('mark-read', { messageIds: [msg.id] });
-  }
 });
 
-socket.on('user-typing', function(data) {
-  if (data.userId === friendId) {
-    if (data.isTyping) {
-      typingIndicator.style.display = 'flex';
-    } else {
-      typingIndicator.style.display = 'none';
-    }
-  }
-});
-
-socket.on('user-status', function(data) {
-  if (data.userId === friendId) {
-    const dot = chatStatus.querySelector('.status-dot');
-    if (data.status === 'online') {
-      dot.className = 'status-dot online';
-      chatStatus.innerHTML = '<span class="status-dot online"></span> Online';
-    } else {
-      dot.className = 'status-dot offline';
-      chatStatus.innerHTML = '<span class="status-dot offline"></span> Offline';
-    }
+socket.on('group-typing', function(data) {
+  if (data.userId !== userId) {
+    typingIndicator.style.display = data.isTyping ? 'flex' : 'none';
   }
 });
 
@@ -223,10 +200,10 @@ messageInput.addEventListener('input', function() {
   this.style.height = Math.min(this.scrollHeight, 150) + 'px';
   sendBtn.disabled = !this.value.trim() && !selectedFile;
 
-  socket.emit('typing', { userId, friendId, isTyping: true });
+  socket.emit('group-typing', { userId, groupId, isTyping: true });
   clearTimeout(typingTimeout);
   typingTimeout = setTimeout(() => {
-    socket.emit('typing', { userId, friendId, isTyping: false });
+    socket.emit('group-typing', { userId, groupId, isTyping: false });
   }, 2000);
 });
 
@@ -269,10 +246,10 @@ function sendMessage() {
       .then(r => r.json())
       .then(data => {
         if (data.success) {
-          socket.emit('send-message', {
+          socket.emit('send-group-message', {
             senderId: userId,
-            receiverId: friendId,
-            content: content,
+            groupId,
+            content,
             fileUrl: data.fileUrl,
             fileType: data.fileType,
             fileName: data.fileName,
@@ -289,10 +266,10 @@ function sendMessage() {
     return;
   }
 
-  socket.emit('send-message', {
+  socket.emit('send-group-message', {
     senderId: userId,
-    receiverId: friendId,
-    content: content,
+    groupId,
+    content,
     fileUrl: null,
     fileType: null,
     fileName: null,
@@ -302,19 +279,62 @@ function sendMessage() {
   messageInput.value = '';
   messageInput.style.height = 'auto';
   sendBtn.disabled = true;
-  socket.emit('typing', { userId, friendId, isTyping: false });
+  socket.emit('group-typing', { userId, groupId, isTyping: false });
 }
 
-function showToast(msg, type = 'success') {
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.innerHTML = msg;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.classList.add('show'), 10);
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
+document.getElementById('addMemberBtn')?.addEventListener('click', function() {
+  fetch(`/group/${groupId}/members`)
+    .then(r => r.json())
+    .then(data => {
+      const body = document.getElementById('addMemberBody');
+      if (data.addableFriends && data.addableFriends.length > 0) {
+        body.innerHTML = data.addableFriends.map(f => `
+          <div class="search-result-item" style="cursor:pointer" onclick="addMember('${f.id}')">
+            <div class="search-result-avatar">
+              ${f.profilePic ? `<img src="${f.profilePic}" alt="">` : `<div class="avatar-placeholder">${(f.displayName || f.username || '?')[0].toUpperCase()}</div>`}
+            </div>
+            <div class="search-result-info">
+              <span class="search-result-name">${f.displayName || f.username}</span>
+              <span class="search-result-username">@${f.username}</span>
+            </div>
+            <div class="search-result-action"><button class="btn btn-primary btn-sm">Add</button></div>
+          </div>
+        `).join('');
+      } else {
+        body.innerHTML = '<p class="sub-text">No friends to add. All your friends are already in this group!</p>';
+      }
+      document.getElementById('addMemberModal').style.display = 'flex';
+    });
+});
+
+function addMember(friendId) {
+  fetch(`/group/${groupId}/add`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId: friendId })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showToast('Member added!');
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        showToast(data.error || 'Failed to add member', 'error');
+      }
+    });
+}
+
+function closeAddMember() {
+  document.getElementById('addMemberModal').style.display = 'none';
+}
+
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.innerHTML = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.classList.add('show'), 10);
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
 }
 </script>
 <%- include('partials/footer') %>

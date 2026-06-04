@@ -23,6 +23,7 @@
                   <% } else { %>
                     <div class="avatar-placeholder"><%= (conv.user.displayName || conv.user.username || '?')[0].toUpperCase() %></div>
                   <% } %>
+                  <span class="status-dot offline" data-user-id="<%= conv.user.id %>"></span>
                 </div>
                 <div class="conversation-info">
                   <span class="conversation-name"><%= conv.user.displayName || conv.user.username %></span>
@@ -64,11 +65,14 @@
           <div class="friends-grid">
             <% friends.slice(0, 6).forEach(function(friend) { %>
               <a href="/chat/<%= friend.id %>" class="friend-mini-card">
-                <% if (friend.profilePic) { %>
-                  <img src="<%= friend.profilePic %>" alt="">
-                <% } else { %>
-                  <div class="avatar-placeholder"><%= (friend.displayName || friend.username || '?')[0].toUpperCase() %></div>
-                <% } %>
+                <div class="avatar-wrapper">
+                  <% if (friend.profilePic) { %>
+                    <img src="<%= friend.profilePic %>" alt="">
+                  <% } else { %>
+                    <div class="avatar-placeholder"><%= (friend.displayName || friend.username || '?')[0].toUpperCase() %></div>
+                  <% } %>
+                  <span class="status-dot offline" data-user-id="<%= friend.id %>"></span>
+                </div>
                 <span><%= friend.displayName || friend.username %></span>
               </a>
             <% }); %>
