@@ -220,6 +220,16 @@ function scrollToBottom() {
 
 scrollToBottom();
 
+messagesContainer.addEventListener('click', function(e) {
+  var msg = e.target.closest('.message');
+  if (!msg) return;
+  if (e.target.closest('.btn-reply') || e.target.closest('.reaction-badge') || e.target.closest('.message-emoji-bar span') || e.target.closest('.reply-quote')) return;
+  messagesContainer.querySelectorAll('.message.show-emoji-bar').forEach(function(m) {
+    if (m !== msg) m.classList.remove('show-emoji-bar');
+  });
+  msg.classList.toggle('show-emoji-bar');
+});
+
 socket.on('new-group-message', function(msg) {
   const isMine = msg.senderId === userId;
   const emptyState = messagesContainer.querySelector('.chat-empty');

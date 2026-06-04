@@ -193,6 +193,16 @@ function scrollToBottom() {
 
 scrollToBottom();
 
+messagesContainer.addEventListener('click', function(e) {
+  var msg = e.target.closest('.message');
+  if (!msg) return;
+  if (e.target.closest('.btn-reply') || e.target.closest('.reaction-badge') || e.target.closest('.message-emoji-bar span') || e.target.closest('.reply-quote')) return;
+  messagesContainer.querySelectorAll('.message.show-emoji-bar').forEach(function(m) {
+    if (m !== msg) m.classList.remove('show-emoji-bar');
+  });
+  msg.classList.toggle('show-emoji-bar');
+});
+
 const unreadIds = Array.from(document.querySelectorAll('.message-received[data-message-id]')).map(el => el.dataset.messageId);
 if (unreadIds.length > 0) {
   socket.emit('mark-read', { messageIds: unreadIds });

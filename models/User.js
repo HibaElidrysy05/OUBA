@@ -33,6 +33,10 @@ const User = sequelize.define('User', {
   profilePic: {
     type: DataTypes.STRING,
     defaultValue: ''
+  },
+  role: {
+    type: DataTypes.STRING,
+    defaultValue: 'user'
   }
 }, {
   timestamps: true

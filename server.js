@@ -50,7 +50,7 @@ app.use((req, res, next) => {
   res.locals.currentUser = null;
   if (req.session.userId) {
     User.findByPk(req.session.userId, {
-      attributes: ['id', 'username', 'displayName', 'profilePic', 'bio']
+      attributes: ['id', 'username', 'displayName', 'profilePic', 'bio', 'role']
     })
       .then(user => {
         res.locals.currentUser = user;
@@ -140,11 +140,21 @@ app.use('/', require('./routes/users'));
 app.use('/', require('./routes/messages'));
 app.use('/', require('./routes/groups'));
 app.use('/upload', require('./routes/upload'));
+app.use('/admin', require('./routes/admin'));
 
 socketHandler(io);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, async () => {
   await syncDB();
+  const adminCount = await User.count({ where: { role: 'admin' } });
+  if (adminCount === 0) {
+    const firstUser = await User.findOne({ order: [['createdAt', 'ASC']] });
+    if (firstUser) {
+      firstUser.role = 'admin';
+      await firstUser.save();
+      console.log('First user promoted to admin');
+    }
+  }
   console.log(`Ouba server running on port ${PORT}`);
 });

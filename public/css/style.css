@@ -1458,35 +1458,39 @@ html, body {
 }
 
 .btn-reply {
-  display: none;
+  display: flex;
   position: absolute;
-  right: -32px;
-  top: 50%;
-  transform: translateY(-50%);
+  right: 8px;
+  top: -12px;
   background: var(--white);
   border: 1px solid var(--pink-light);
   border-radius: 50%;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--pink-dark);
   transition: var(--transition);
   padding: 0;
+  opacity: 0.4;
+  z-index: 5;
+  box-shadow: 0 1px 3px var(--shadow-light);
 }
 
-.message:hover .btn-reply {
-  display: flex;
+.btn-reply:hover {
+  opacity: 1;
+  transform: scale(1.15);
 }
 
 @media (max-width: 600px) {
   .btn-reply {
-    display: flex;
-    right: -28px;
-    width: 22px;
-    height: 22px;
+    opacity: 0.6;
+    right: 6px;
+    top: -10px;
+    width: 26px;
+    height: 26px;
     font-size: 10px;
   }
 }
@@ -1559,14 +1563,9 @@ html, body {
   padding-left: 4px;
 }
 
-.message:hover .message-emoji-bar {
+.message:hover .message-emoji-bar,
+.message.show-emoji-bar .message-emoji-bar {
   display: flex;
-}
-
-@media (max-width: 600px) {
-  .message-emoji-bar {
-    display: flex;
-  }
 }
 
 .message-emoji-bar span {
