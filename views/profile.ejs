@@ -33,7 +33,7 @@
       <div class="form-group">
         <label for="bio"><i class="fas fa-quote-right"></i> Bio</label>
         <textarea id="bio" name="bio" rows="3" placeholder="Tell the world about yourself..." maxlength="200"><%= user.bio || '' %></textarea>
-        <span class="char-count">0/200</span>
+        <span class="char-count"><%= (user.bio || '').length %>/200</span>
       </div>
 
       <div class="form-divider">
@@ -64,15 +64,27 @@ document.getElementById('profilePicInput').addEventListener('change', function(e
     .then(r => r.json())
     .then(data => {
       if (data.success) {
-        document.getElementById('profilePicPreview').outerHTML = `<img src="${data.fileUrl}?t=${Date.now()}" alt="Profile" id="profilePicPreview">`;
-        const user = <%= JSON.stringify(user) %>;
-        user.profilePic = data.fileUrl;
+        const preview = document.getElementById('profilePicPreview');
+        preview.outerHTML = `<img src="${data.fileUrl}?t=${Date.now()}" alt="Profile" id="profilePicPreview">`;
+        location.reload();
+      } else {
+        showToast(data.error || 'Upload failed', 'error');
       }
-    });
+    })
+    .catch(() => showToast('Upload failed', 'error'));
 });
 
 document.getElementById('bio').addEventListener('input', function() {
   document.querySelector('.char-count').textContent = `${this.value.length}/200`;
 });
+
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.classList.add('show'), 10);
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
+}
 </script>
 <%- include('partials/footer') %>

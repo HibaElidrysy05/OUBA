@@ -154,6 +154,11 @@ function scrollToBottom() {
 
 scrollToBottom();
 
+const unreadIds = Array.from(document.querySelectorAll('.message-received[data-message-id]')).map(el => el.dataset.messageId);
+if (unreadIds.length > 0) {
+  socket.emit('mark-read', { messageIds: unreadIds });
+}
+
 socket.on('new-message', function(msg) {
   const isMine = msg.sender.id === userId;
   const emptyState = messagesContainer.querySelector('.chat-empty');
@@ -184,6 +189,9 @@ socket.on('new-message', function(msg) {
   div.innerHTML = `<div class="message-content">${content}</div>`;
   messagesContainer.appendChild(div);
   scrollToBottom();
+  if (!isMine && msg.id) {
+    socket.emit('mark-read', { messageIds: [msg.id] });
+  }
 });
 
 socket.on('user-typing', function(data) {
