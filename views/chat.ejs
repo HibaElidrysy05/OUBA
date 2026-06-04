@@ -7,7 +7,7 @@
     <div class="chat-sidebar-list">
       <% if (friends && friends.length > 0) { %>
         <% friends.forEach(function(f) { %>
-          <a href="/chat/<%= f._id %>" class="chat-sidebar-item <%= f._id.toString() === friend._id.toString() ? 'active' : '' %>">
+          <a href="/chat/<%= f.id %>" class="chat-sidebar-item <%= f.id === friend.id ? 'active' : '' %>">
             <div class="chat-sidebar-avatar">
               <% if (f.profilePic) { %>
                 <img src="<%= f.profilePic %>" alt="">
@@ -54,8 +54,8 @@
     <div class="chat-messages" id="chatMessages">
       <% if (messages && messages.length > 0) { %>
         <% messages.forEach(function(msg) { %>
-          <% const isMine = msg.sender._id.toString() === user._id.toString(); %>
-          <div class="message <%= isMine ? 'message-sent' : 'message-received' %>" data-message-id="<%= msg._id %>">
+          <% const isMine = msg.sender.id === user.id; %>
+          <div class="message <%= isMine ? 'message-sent' : 'message-received' %>" data-message-id="<%= msg.id %>">
             <div class="message-content">
               <% if (msg.fileUrl) { %>
                 <div class="message-file">
@@ -122,8 +122,8 @@
 
 <script>
 const socket = io();
-const userId = '<%= user._id %>';
-const friendId = '<%= friend._id %>';
+const userId = '<%= user.id %>';
+const friendId = '<%= friend.id %>';
 let selectedFile = null;
 
 socket.emit('user-online', userId);
@@ -148,13 +148,13 @@ function scrollToBottom() {
 scrollToBottom();
 
 socket.on('new-message', function(msg) {
-  const isMine = msg.sender._id === userId;
+  const isMine = msg.sender.id === userId;
   const emptyState = messagesContainer.querySelector('.chat-empty');
   if (emptyState) emptyState.remove();
 
   const div = document.createElement('div');
   div.className = `message ${isMine ? 'message-sent' : 'message-received'}`;
-  div.dataset.messageId = msg._id;
+  div.dataset.messageId = msg.id;
 
   let content = '';
   if (msg.fileUrl) {

@@ -16,7 +16,7 @@
         <% if (conversations && conversations.length > 0) { %>
           <div class="conversation-list">
             <% conversations.forEach(function(conv) { %>
-              <a href="/chat/<%= conv.user._id %>" class="conversation-item">
+              <a href="/chat/<%= conv.user.id %>" class="conversation-item">
                 <div class="conversation-avatar">
                   <% if (conv.user.profilePic) { %>
                     <img src="<%= conv.user.profilePic %>" alt="">
@@ -63,7 +63,7 @@
         <% if (friends && friends.length > 0) { %>
           <div class="friends-grid">
             <% friends.slice(0, 6).forEach(function(friend) { %>
-              <a href="/chat/<%= friend._id %>" class="friend-mini-card">
+              <a href="/chat/<%= friend.id %>" class="friend-mini-card">
                 <% if (friend.profilePic) { %>
                   <img src="<%= friend.profilePic %>" alt="">
                 <% } else { %>

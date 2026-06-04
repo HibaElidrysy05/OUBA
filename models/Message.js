@@ -1,38 +1,38 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/db');
 
-const messageSchema = new mongoose.Schema({
-  sender: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  receiver: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+const Message = sequelize.define('Message', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
   },
   content: {
-    type: String,
-    default: ''
+    type: DataTypes.TEXT,
+    defaultValue: ''
   },
   fileUrl: {
-    type: String,
-    default: null
+    type: DataTypes.STRING,
+    defaultValue: null
   },
   fileType: {
-    type: String,
-    default: null
+    type: DataTypes.STRING,
+    defaultValue: null
   },
   fileName: {
-    type: String,
-    default: null
+    type: DataTypes.STRING,
+    defaultValue: null
   },
   fileSize: {
-    type: Number,
-    default: null
+    type: DataTypes.INTEGER,
+    defaultValue: null
+  },
+  read: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
 }, {
   timestamps: true
 });
 
-module.exports = mongoose.model('Message', messageSchema);
+module.exports = Message;

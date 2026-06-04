@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { Op } = require('sequelize');
 const Message = require('../models/Message');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
@@ -8,30 +9,48 @@ router.use(auth);
 
 router.get('/chat/:friendId', async (req, res) => {
   try {
-    const currentUser = await User.findById(req.session.userId);
-    const friend = await User.findById(req.params.friendId).select('username displayName profilePic bio');
+    const currentUserId = req.session.userId;
+    const friendId = req.params.friendId;
+
+    const currentUser = await User.findByPk(currentUserId);
+    const friend = await User.findByPk(friendId, {
+      attributes: ['id', 'username', 'displayName', 'profilePic', 'bio']
+    });
 
     if (!friend) return res.redirect('/');
 
-    const isFriend = currentUser.friends.some(f => f.toString() === friend._id.toString());
+    const friends = await currentUser.getFriends();
+    const isFriend = friends.some(f => f.id === friend.id);
     if (!isFriend) return res.redirect('/friends');
 
-    const messages = await Message.find({
-      $or: [
-        { sender: currentUser._id, receiver: friend._id },
-        { sender: friend._id, receiver: currentUser._id }
+    const messages = await Message.findAll({
+      where: {
+        [Op.or]: [
+          { senderId: currentUserId, receiverId: friendId },
+          { senderId: friendId, receiverId: currentUserId }
+        ]
+      },
+      order: [['createdAt', 'ASC']],
+      include: [
+        { association: 'Sender', attributes: ['id', 'username', 'displayName', 'profilePic'] }
       ]
-    }).sort({ createdAt: 1 }).populate('sender', 'username displayName profilePic');
+    });
 
-    const friends = await User.findById(req.session.userId)
-      .populate('friends', 'username displayName profilePic bio');
+    const userWithFriends = await User.findByPk(currentUserId, {
+      include: [
+        {
+          association: 'Friends',
+          attributes: ['id', 'username', 'displayName', 'profilePic', 'bio']
+        }
+      ]
+    });
 
     res.render('chat', {
       title: `Chat with ${friend.displayName || friend.username} - Ouba`,
       user: currentUser,
       friend,
       messages,
-      friends: friends.friends
+      friends: userWithFriends.Friends || []
     });
   } catch (error) {
     console.error('Chat error:', error);
@@ -43,41 +62,38 @@ router.get('/conversations', async (req, res) => {
   try {
     const userId = req.session.userId;
 
-    const messages = await Message.aggregate([
-      {
-        $match: {
-          $or: [{ sender: userId }, { receiver: userId }]
-        }
+    const allMessages = await Message.findAll({
+      where: {
+        [Op.or]: [
+          { senderId: userId },
+          { receiverId: userId }
+        ]
       },
-      { $sort: { createdAt: -1 } },
-      {
-        $group: {
-          _id: {
-            $cond: [
-              { $eq: ['$sender', userId] },
-              '$receiver',
-              '$sender'
-            ]
-          },
-          lastMessage: { $first: '$$ROOT' }
-        }
-      },
-      { $sort: { 'lastMessage.createdAt': -1 } }
-    ]);
-
-    const conversationUsers = await User.find({
-      _id: { $in: messages.map(m => m._id) }
-    }).select('username displayName profilePic bio');
-
-    const conversations = messages.map(m => {
-      const user = conversationUsers.find(
-        u => u._id.toString() === m._id.toString()
-      );
-      return {
-        user,
-        lastMessage: m.lastMessage
-      };
+      order: [['createdAt', 'DESC']]
     });
+
+    const convMap = {};
+    for (const msg of allMessages) {
+      const partnerId = msg.senderId === userId ? msg.receiverId : msg.senderId;
+      if (!convMap[partnerId]) {
+        convMap[partnerId] = msg;
+      }
+    }
+
+    const partnerIds = Object.keys(convMap);
+    const conversationUsers = partnerIds.length > 0
+      ? await User.findAll({
+          where: { id: partnerIds },
+          attributes: ['id', 'username', 'displayName', 'profilePic', 'bio']
+        })
+      : [];
+
+    const conversations = conversationUsers.map(u => ({
+      user: u,
+      lastMessage: convMap[u.id]
+    }));
+
+    conversations.sort((a, b) => new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt));
 
     res.json({ conversations });
   } catch (error) {

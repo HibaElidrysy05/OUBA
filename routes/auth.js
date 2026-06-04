@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { Op } = require('sequelize');
 const User = require('../models/User');
 
 router.get('/login', (req, res) => {
@@ -28,15 +29,16 @@ router.post('/register', async (req, res) => {
       return res.render('register', { title: 'Register - Ouba', error: 'Password must be at least 6 characters' });
     }
 
-    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
+    const existingUser = await User.findOne({
+      where: { [Op.or]: [{ username }, { email }] }
+    });
     if (existingUser) {
       return res.render('register', { title: 'Register - Ouba', error: 'Username or email already exists' });
     }
 
-    const user = new User({ username, email, password, displayName: username });
-    await user.save();
+    const user = await User.create({ username, email, password, displayName: username });
 
-    req.session.userId = user._id;
+    req.session.userId = user.id;
     res.redirect('/');
   } catch (error) {
     console.error('Register error:', error);
@@ -52,7 +54,9 @@ router.post('/login', async (req, res) => {
       return res.render('login', { title: 'Login - Ouba', error: 'All fields are required' });
     }
 
-    const user = await User.findOne({ $or: [{ username }, { email: username }] });
+    const user = await User.findOne({
+      where: { [Op.or]: [{ username }, { email: username }] }
+    });
     if (!user) {
       return res.render('login', { title: 'Login - Ouba', error: 'Invalid credentials' });
     }
@@ -62,7 +66,7 @@ router.post('/login', async (req, res) => {
       return res.render('login', { title: 'Login - Ouba', error: 'Invalid credentials' });
     }
 
-    req.session.userId = user._id;
+    req.session.userId = user.id;
     res.redirect('/');
   } catch (error) {
     console.error('Login error:', error);

@@ -1,14 +1,16 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
+const pgSession = require('connect-pg-simple')(session);
 const fileUpload = require('express-fileupload');
 const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
+const { Op } = require('sequelize');
 require('dotenv').config();
 
-const connectDB = require('./config/db');
+const sequelize = require('./config/db');
+const { connectDB } = require('./config/db');
+const { User, syncDB } = require('./models');
 const auth = require('./middleware/auth');
 const socketHandler = require('./socket/handler');
 
@@ -33,10 +35,9 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'ouba_secret_key',
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI,
-    collectionName: 'sessions',
-    ttl: 14 * 24 * 60 * 60
+  store: new pgSession({
+    conString: process.env.DATABASE_URL,
+    tableName: 'session'
   }),
   cookie: {
     maxAge: 14 * 24 * 60 * 60 * 1000,
@@ -47,8 +48,9 @@ app.use(session({
 app.use((req, res, next) => {
   res.locals.currentUser = null;
   if (req.session.userId) {
-    const User = require('./models/User');
-    User.findById(req.session.userId).select('username displayName profilePic bio')
+    User.findByPk(req.session.userId, {
+      attributes: ['id', 'username', 'displayName', 'profilePic', 'bio']
+    })
       .then(user => {
         res.locals.currentUser = user;
         next();
@@ -63,61 +65,68 @@ app.use('/', require('./routes/auth'));
 
 app.get('/', auth, async (req, res) => {
   try {
-    const User = require('./models/User');
-    const user = await User.findById(req.session.userId)
-      .populate('friends', 'username displayName profilePic bio');
+    const user = await User.findByPk(req.session.userId, {
+      include: [
+        {
+          association: 'Friends',
+          attributes: ['id', 'username', 'displayName', 'profilePic', 'bio']
+        },
+        {
+          association: 'ReceivedRequests',
+          where: { status: 'pending' },
+          required: false,
+          include: [{ association: 'Sender', attributes: ['id', 'username', 'displayName', 'profilePic'] }]
+        }
+      ]
+    });
 
     const Message = require('./models/Message');
-    const messages = await Message.aggregate([
-      {
-        $match: {
-          $or: [{ sender: req.session.userId }, { receiver: req.session.userId }]
-        }
+    const allMessages = await Message.findAll({
+      where: {
+        [Op.or]: [
+          { senderId: req.session.userId },
+          { receiverId: req.session.userId }
+        ]
       },
-      { $sort: { createdAt: -1 } },
-      {
-        $group: {
-          _id: {
-            $cond: [
-              { $eq: ['$sender', req.session.userId] },
-              '$receiver',
-              '$sender'
-            ]
-          },
-          lastMessage: { $first: '$$ROOT' },
-          unreadCount: {
-            $sum: {
-              $cond: [
-                { $and: [{ $eq: ['$receiver', req.session.userId] }, { $ne: ['$read', true] }] },
-                1,
-                0
-              ]
-            }
-          }
-        }
-      },
-      { $sort: { 'lastMessage.createdAt': -1 } }
-    ]);
+      order: [['createdAt', 'DESC']]
+    });
 
-    const conversationUsers = await User.find({
-      _id: { $in: messages.map(m => m._id) }
-    }).select('username displayName profilePic bio');
+    const convMap = {};
+    for (const msg of allMessages) {
+      const partnerId = msg.senderId === req.session.userId ? msg.receiverId : msg.senderId;
+      if (!convMap[partnerId]) {
+        convMap[partnerId] = { lastMessage: msg, unreadCount: 0 };
+      }
+      if (msg.receiverId === req.session.userId && !msg.read) {
+        convMap[partnerId].unreadCount += 1;
+      }
+    }
 
-    const conversations = messages.map(m => {
-      const u = conversationUsers.find(
-        usr => usr._id.toString() === m._id.toString()
-      );
-      return { user: u, lastMessage: m.lastMessage, unreadCount: m.unreadCount };
-    }).filter(c => c.user);
+    const partnerIds = Object.keys(convMap);
+    const conversationUsers = partnerIds.length > 0
+      ? await User.findAll({
+          where: { id: partnerIds },
+          attributes: ['id', 'username', 'displayName', 'profilePic', 'bio']
+        })
+      : [];
 
-    const pendingCount = user.friendRequests.filter(fr => fr.status === 'pending').length;
+    const conversations = conversationUsers.map(u => ({
+      user: u,
+      lastMessage: convMap[u.id].lastMessage,
+      unreadCount: convMap[u.id].unreadCount
+    }));
+
+    conversations.sort((a, b) => new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt));
+
+    const Friends = user.Friends || [];
+    const pendingRequests = (user.ReceivedRequests || []).filter(r => r.status === 'pending');
 
     res.render('dashboard', {
       title: 'Dashboard - Ouba',
       user,
-      friends: user.friends,
+      friends: Friends,
       conversations,
-      pendingCount
+      pendingCount: pendingRequests.length
     });
   } catch (error) {
     console.error('Dashboard error:', error);
@@ -132,6 +141,7 @@ app.use('/upload', require('./routes/upload'));
 socketHandler(io);
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
+  await syncDB();
   console.log(`Ouba server running on port ${PORT}`);
 });

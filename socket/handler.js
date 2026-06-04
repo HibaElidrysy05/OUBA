@@ -28,9 +28,9 @@ module.exports = (io) => {
       try {
         const { receiverId, content, fileUrl, fileType, fileName, fileSize } = data;
 
-        const message = new Message({
-          sender: data.senderId,
-          receiver: receiverId,
+        const message = await Message.create({
+          senderId: data.senderId,
+          receiverId,
           content: content || '',
           fileUrl: fileUrl || null,
           fileType: fileType || null,
@@ -38,10 +38,11 @@ module.exports = (io) => {
           fileSize: fileSize || null
         });
 
-        await message.save();
-
-        const populatedMessage = await Message.findById(message._id)
-          .populate('sender', 'username displayName profilePic');
+        const populatedMessage = await Message.findByPk(message.id, {
+          include: [
+            { association: 'Sender', attributes: ['id', 'username', 'displayName', 'profilePic'] }
+          ]
+        });
 
         const room = [data.senderId, receiverId].sort().join('-');
         io.to(room).emit('new-message', populatedMessage);
@@ -63,9 +64,9 @@ module.exports = (io) => {
 
     socket.on('mark-read', async ({ messageIds }) => {
       try {
-        await Message.updateMany(
-          { _id: { $in: messageIds } },
-          { read: true }
+        await Message.update(
+          { read: true },
+          { where: { id: messageIds } }
         );
       } catch (error) {
         console.error('Mark read error:', error);

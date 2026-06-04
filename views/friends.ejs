@@ -20,21 +20,21 @@
       <div class="card-body">
         <div class="request-list">
           <% pendingRequests.forEach(function(req) { %>
-            <div class="request-item" id="request-<%= req.from._id %>">
+            <div class="request-item" id="request-<%= req.Sender.id %>">
               <div class="request-user">
-                <% if (req.from.profilePic) { %>
-                  <img src="<%= req.from.profilePic %>" alt="">
+                <% if (req.Sender.profilePic) { %>
+                  <img src="<%= req.Sender.profilePic %>" alt="">
                 <% } else { %>
-                  <div class="avatar-placeholder"><%= (req.from.displayName || req.from.username || '?')[0].toUpperCase() %></div>
+                  <div class="avatar-placeholder"><%= (req.Sender.displayName || req.Sender.username || '?')[0].toUpperCase() %></div>
                 <% } %>
                 <div class="request-info">
-                  <span class="request-name"><%= req.from.displayName || req.from.username %></span>
-                  <span class="request-username">@<%= req.from.username %></span>
+                  <span class="request-name"><%= req.Sender.displayName || req.Sender.username %></span>
+                  <span class="request-username">@<%= req.Sender.username %></span>
                 </div>
               </div>
               <div class="request-actions">
-                <button class="btn btn-accept" onclick="acceptRequest('<%= req.from._id %>')"><i class="fas fa-check"></i></button>
-                <button class="btn btn-reject" onclick="rejectRequest('<%= req.from._id %>')"><i class="fas fa-times"></i></button>
+                <button class="btn btn-accept" onclick="acceptRequest('<%= req.Sender.id %>')"><i class="fas fa-check"></i></button>
+                <button class="btn btn-reject" onclick="rejectRequest('<%= req.Sender.id %>')"><i class="fas fa-times"></i></button>
               </div>
             </div>
           <% }); %>
@@ -51,7 +51,7 @@
       <% if (friends && friends.length > 0) { %>
         <div class="friends-list">
           <% friends.forEach(function(friend) { %>
-            <a href="/chat/<%= friend._id %>" class="friend-item">
+            <a href="/chat/<%= friend.id %>" class="friend-item">
               <div class="friend-avatar">
                 <% if (friend.profilePic) { %>
                   <img src="<%= friend.profilePic %>" alt="">
@@ -108,11 +108,11 @@ document.getElementById('searchInput').addEventListener('input', function() {
               actionBtn = '<span class="friend-badge pending"><i class="fas fa-clock"></i> Pending</span>';
             } else if (u.gotRequest) {
               actionBtn = `
-                <button class="btn btn-accept btn-sm" onclick="acceptRequest('${u._id}')"><i class="fas fa-check"></i></button>
-                <button class="btn btn-reject btn-sm" onclick="rejectRequest('${u._id}')"><i class="fas fa-times"></i></button>
+                <button class="btn btn-accept btn-sm" onclick="acceptRequest('${u.id}')"><i class="fas fa-check"></i></button>
+                <button class="btn btn-reject btn-sm" onclick="rejectRequest('${u.id}')"><i class="fas fa-times"></i></button>
               `;
             } else {
-              actionBtn = `<button class="btn btn-primary btn-sm" onclick="sendRequest('${u._id}')"><i class="fas fa-user-plus"></i> Add</button>`;
+              actionBtn = `<button class="btn btn-primary btn-sm" onclick="sendRequest('${u.id}')"><i class="fas fa-user-plus"></i> Add</button>`;
             }
             return `
               <div class="search-result-item">
