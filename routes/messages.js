@@ -32,7 +32,12 @@ router.get('/chat/:friendId', async (req, res) => {
       },
       order: [['createdAt', 'ASC']],
       include: [
-        { association: 'sender', attributes: ['id', 'username', 'displayName', 'profilePic'] }
+        { association: 'sender', attributes: ['id', 'username', 'displayName', 'profilePic'] },
+        {
+          association: 'repliedTo',
+          attributes: ['id', 'content', 'fileUrl', 'fileType', 'fileName', 'senderId'],
+          include: [{ association: 'sender', attributes: ['id', 'username', 'displayName'] }]
+        }
       ]
     });
 

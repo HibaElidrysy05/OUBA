@@ -66,7 +66,14 @@ router.get('/group/:id', async (req, res) => {
 
     const messages = await Message.findAll({
       where: { groupId: group.id },
-      include: [{ association: 'sender', attributes: ['id', 'username', 'displayName', 'profilePic'] }],
+      include: [
+        { association: 'sender', attributes: ['id', 'username', 'displayName', 'profilePic'] },
+        {
+          association: 'repliedTo',
+          attributes: ['id', 'content', 'fileUrl', 'fileType', 'fileName', 'senderId'],
+          include: [{ association: 'sender', attributes: ['id', 'username', 'displayName'] }]
+        }
+      ],
       order: [['createdAt', 'ASC']],
       limit: 100
     });

@@ -58,6 +58,12 @@
           <% const isMine = msg.sender.id === user.id; %>
           <div class="message <%= isMine ? 'message-sent' : 'message-received' %>" data-message-id="<%= msg.id %>">
             <div class="message-content">
+              <% if (msg.repliedTo) { %>
+                <div class="reply-quote" data-reply-id="<%= msg.repliedTo.id %>">
+                  <div class="reply-sender"><%= msg.repliedTo.sender ? (msg.repliedTo.sender.displayName || msg.repliedTo.sender.username) : 'Unknown' %></div>
+                  <div class="reply-preview"><%= msg.repliedTo.fileUrl ? (msg.repliedTo.fileType && msg.repliedTo.fileType.startsWith('image/') ? '📷 Photo' : msg.repliedTo.fileType && msg.repliedTo.fileType.startsWith('audio/') ? '🎵 Audio' : '📎 File') : (msg.repliedTo.content || '').substring(0, 80) %></div>
+                </div>
+              <% } %>
               <% if (msg.fileUrl) { %>
                 <div class="message-file">
                   <% if (msg.fileType && msg.fileType.startsWith('image/')) { %>
@@ -85,6 +91,22 @@
               <% if (isMine) { %>
                 <span class="message-status <%= msg.read ? 'read' : '' %>"><%= msg.read ? 'Read' : 'Sent' %></span>
               <% } %>
+              <button class="btn-reply" onclick="setReply('<%= msg.id %>', '<%= (msg.sender.displayName || msg.sender.username).replace(/'/g, "\\'") %>', '<%= (msg.content || '').replace(/'/g, "\\'").substring(0, 50).replace(/\\n/g, ' ') %>')" title="Reply"><i class="fas fa-reply"></i></button>
+            </div>
+            <% if (msg.reactions && Object.keys(msg.reactions).length > 0) { %>
+              <div class="message-reactions">
+                <% Object.keys(msg.reactions).forEach(function(emoji) { %>
+                  <span class="reaction-badge <%= (msg.reactions[emoji].indexOf(user.id) !== -1) ? 'mine' : '' %>" onclick="toggleReaction('<%= msg.id %>', '<%= emoji %>', 'dm', '<%= friendId %>')"><%= emoji %> <%= msg.reactions[emoji].length %></span>
+                <% }); %>
+              </div>
+            <% } %>
+            <div class="message-emoji-bar">
+              <span onclick="toggleReaction('<%= msg.id %>', '❤️', 'dm', '<%= friendId %>')">❤️</span>
+              <span onclick="toggleReaction('<%= msg.id %>', '😂', 'dm', '<%= friendId %>')">😂</span>
+              <span onclick="toggleReaction('<%= msg.id %>', '😮', 'dm', '<%= friendId %>')">😮</span>
+              <span onclick="toggleReaction('<%= msg.id %>', '😢', 'dm', '<%= friendId %>')">😢</span>
+              <span onclick="toggleReaction('<%= msg.id %>', '😡', 'dm', '<%= friendId %>')">😡</span>
+              <span onclick="toggleReaction('<%= msg.id %>', '👍', 'dm', '<%= friendId %>')">👍</span>
             </div>
           </div>
         <% }); %>
@@ -97,6 +119,14 @@
       <% } %>
     </div>
 
+    <div id="replyPreview" class="reply-preview-bar" style="display:none">
+      <div class="reply-preview-info">
+        <i class="fas fa-reply"></i>
+        <span>Replying to <strong id="replyTargetName"></strong></span>
+        <span id="replyTargetText" class="reply-target-text"></span>
+      </div>
+      <button type="button" class="preview-remove" onclick="clearReply()"><i class="fas fa-times"></i></button>
+    </div>
     <div class="chat-input">
       <div class="chat-input-actions">
         <button type="button" class="btn-input" id="fileBtn" title="Attach file">
@@ -129,6 +159,11 @@ const socket = window.appSocket || io({ transports: ['websocket', 'polling'] });
 const userId = '<%= user.id %>';
 const friendId = '<%= friend.id %>';
 let selectedFile = null;
+let replyToId = null;
+
+const replyPreview = document.getElementById('replyPreview');
+const replyTargetName = document.getElementById('replyTargetName');
+const replyTargetText = document.getElementById('replyTargetText');
 
 if (socket.connected) {
   socket.emit('user-online', userId);
@@ -173,27 +208,53 @@ socket.on('new-message', function(msg) {
   div.dataset.messageId = msg.id;
 
   let content = '';
+  if (msg.repliedTo) {
+    const replySender = msg.repliedTo.sender ? (msg.repliedTo.sender.displayName || msg.repliedTo.sender.username) : 'Unknown';
+    const replyText = msg.repliedTo.fileUrl ? (msg.repliedTo.fileType && msg.repliedTo.fileType.startsWith('image/') ? '📷 Photo' : msg.repliedTo.fileType && msg.repliedTo.fileType.startsWith('audio/') ? '🎵 Audio' : '📎 File') : (msg.repliedTo.content || '').substring(0, 80);
+    content += '<div class="reply-quote" data-reply-id="' + msg.repliedTo.id + '"><div class="reply-sender">' + replySender + '</div><div class="reply-preview">' + replyText + '</div></div>';
+  }
   if (msg.fileUrl) {
     content += '<div class="message-file">';
     if (msg.fileType && msg.fileType.startsWith('image/')) {
-      content += `<img src="${msg.fileUrl}" alt="${msg.fileName || 'Image'}" class="message-image" onclick="window.open(this.src)">`;
+      content += '<img src="' + msg.fileUrl + '" alt="' + (msg.fileName || 'Image') + '" class="message-image" onclick="window.open(this.src)">';
     } else if (msg.fileType && msg.fileType.startsWith('audio/')) {
-      content += `<audio controls src="${msg.fileUrl}"></audio>`;
+      content += '<audio controls src="' + msg.fileUrl + '"></audio>';
     } else {
-      content += `<div class="file-attachment"><i class="fas fa-file"></i><div class="file-info"><a href="${msg.fileUrl}" target="_blank" class="file-name">${msg.fileName || 'File'}</a>${msg.fileSize ? `<span class="file-size">${(msg.fileSize / 1024 / 1024).toFixed(1)} MB</span>` : ''}</div><a href="${msg.fileUrl}" download class="file-download"><i class="fas fa-download"></i></a></div>`;
+      content += '<div class="file-attachment"><i class="fas fa-file"></i><div class="file-info"><a href="' + msg.fileUrl + '" target="_blank" class="file-name">' + (msg.fileName || 'File') + '</a>' + (msg.fileSize ? '<span class="file-size">' + (msg.fileSize / 1024 / 1024).toFixed(1) + ' MB</span>' : '') + '</div><a href="' + msg.fileUrl + '" download class="file-download"><i class="fas fa-download"></i></a></div>';
     }
     content += '</div>';
   }
   if (msg.content) {
-    content += `<p>${msg.content}</p>`;
+    content += '<p>' + msg.content + '</p>';
   }
   const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  content += `<span class="message-time">${time}</span>`;
+  content += '<span class="message-time">' + time + '</span>';
   if (isMine) {
     content += '<span class="message-status">Sent</span>';
   }
+  const senderName = (msg.sender.displayName || msg.sender.username).replace(/'/g, "\\'");
+  const msgContent = (msg.content || '').replace(/'/g, "\\'").substring(0, 50).replace(/\n/g, ' ');
+  content += '<button class="btn-reply" onclick="setReply(\'' + msg.id + '\', \'' + senderName + '\', \'' + msgContent + '\')" title="Reply"><i class="fas fa-reply"></i></button>';
 
-  div.innerHTML = `<div class="message-content">${content}</div>`;
+  div.innerHTML = '<div class="message-content">' + content + '</div>';
+
+  const reactionsHtml = document.createElement('div');
+  reactionsHtml.className = 'message-reactions';
+  if (msg.reactions && Object.keys(msg.reactions).length > 0) {
+    let rHtml = '';
+    Object.keys(msg.reactions).forEach(function(emoji) {
+      const mine = msg.reactions[emoji].indexOf(userId) !== -1;
+      rHtml += '<span class="reaction-badge ' + (mine ? 'mine' : '') + '" onclick="toggleReaction(\'' + msg.id + '\', \'' + emoji + '\', \'dm\', \'' + friendId + '\')">' + emoji + ' ' + msg.reactions[emoji].length + '</span>';
+    });
+    reactionsHtml.innerHTML = rHtml;
+    div.appendChild(reactionsHtml);
+  }
+
+  const emojiBar = document.createElement('div');
+  emojiBar.className = 'message-emoji-bar';
+  emojiBar.innerHTML = '<span onclick="toggleReaction(\'' + msg.id + '\', \'❤️\', \'dm\', \'' + friendId + '\')">❤️</span><span onclick="toggleReaction(\'' + msg.id + '\', \'😂\', \'dm\', \'' + friendId + '\')">😂</span><span onclick="toggleReaction(\'' + msg.id + '\', \'😮\', \'dm\', \'' + friendId + '\')">😮</span><span onclick="toggleReaction(\'' + msg.id + '\', \'😢\', \'dm\', \'' + friendId + '\')">😢</span><span onclick="toggleReaction(\'' + msg.id + '\', \'😡\', \'dm\', \'' + friendId + '\')">😡</span><span onclick="toggleReaction(\'' + msg.id + '\', \'👍\', \'dm\', \'' + friendId + '\')">👍</span>';
+  div.appendChild(emojiBar);
+
   messagesContainer.appendChild(div);
   scrollToBottom();
   if (!isMine && msg.id) {
@@ -201,38 +262,22 @@ socket.on('new-message', function(msg) {
   }
 });
 
-socket.on('user-typing', function(data) {
-  if (data.userId === friendId) {
-    if (data.isTyping) {
-      typingIndicator.style.display = 'flex';
-    } else {
-      typingIndicator.style.display = 'none';
-    }
-  }
-});
+function toggleReaction(messageId, emoji, roomType, roomId) {
+  socket.emit('react-to-message', { messageId, emoji, userId, roomType, roomId });
+}
 
-socket.on('user-status', function(data) {
-  if (data.userId === friendId) {
-    const dot = chatStatus.querySelector('.status-dot');
-    if (data.status === 'online') {
-      dot.className = 'status-dot online';
-      chatStatus.innerHTML = '<span class="status-dot online"></span> Online';
-    } else {
-      dot.className = 'status-dot offline';
-      chatStatus.innerHTML = '<span class="status-dot offline"></span> Offline';
-    }
-  }
-});
+function setReply(msgId, senderName, msgPreview) {
+  replyToId = msgId;
+  replyTargetName.textContent = senderName;
+  replyTargetText.textContent = msgPreview || 'Reply to message';
+  replyPreview.style.display = 'flex';
+  messageInput.focus();
+}
 
-socket.on('messages-read', function(messageIds) {
-  messageIds.forEach(function(id) {
-    var el = document.querySelector('.message-sent[data-message-id="' + id + '"]');
-    if (el) {
-      var status = el.querySelector('.message-status');
-      if (status) { status.textContent = 'Read'; status.classList.add('read'); }
-    }
-  });
-});
+function clearReply() {
+  replyToId = null;
+  replyPreview.style.display = 'none';
+}
 
 messageInput.addEventListener('input', function() {
   this.style.height = 'auto';
@@ -277,6 +322,9 @@ function sendMessage() {
 
   if (!content && !selectedFile) return;
 
+  const replyParam = replyToId || undefined;
+  clearReply();
+
   if (selectedFile) {
     const formData = new FormData();
     formData.append('file', selectedFile);
@@ -292,7 +340,8 @@ function sendMessage() {
             fileUrl: data.fileUrl,
             fileType: data.fileType,
             fileName: data.fileName,
-            fileSize: data.fileSize
+            fileSize: data.fileSize,
+            replyToId: replyParam
           });
           clearFilePreview();
         } else {
@@ -312,7 +361,8 @@ function sendMessage() {
     fileUrl: null,
     fileType: null,
     fileName: null,
-    fileSize: null
+    fileSize: null,
+    replyToId: replyParam
   });
 
   messageInput.value = '';

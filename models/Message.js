@@ -11,6 +11,14 @@ const Message = sequelize.define('Message', {
     type: DataTypes.UUID,
     allowNull: true
   },
+  replyTo: {
+    type: DataTypes.UUID,
+    allowNull: true
+  },
+  reactions: {
+    type: DataTypes.JSONB,
+    defaultValue: {}
+  },
   content: {
     type: DataTypes.TEXT,
     defaultValue: ''

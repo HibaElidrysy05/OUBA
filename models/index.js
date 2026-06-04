@@ -9,6 +9,7 @@ User.hasMany(Message, { as: 'SentMessages', foreignKey: 'senderId' });
 User.hasMany(Message, { as: 'ReceivedMessages', foreignKey: 'receiverId' });
 Message.belongsTo(User, { as: 'sender', foreignKey: 'senderId' });
 Message.belongsTo(User, { as: 'receiver', foreignKey: 'receiverId' });
+Message.belongsTo(Message, { as: 'repliedTo', foreignKey: 'replyTo' });
 
 User.hasMany(FriendRequest, { as: 'SentRequests', foreignKey: 'senderId' });
 User.hasMany(FriendRequest, { as: 'ReceivedRequests', foreignKey: 'receiverId' });

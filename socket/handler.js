@@ -38,9 +38,22 @@ module.exports = (io) => {
       socket.to(room).emit('group-typing', { userId, isTyping });
     });
 
+    async function populateMessage(message) {
+      return await Message.findByPk(message.id, {
+        include: [
+          { association: 'sender', attributes: ['id', 'username', 'displayName', 'profilePic'] },
+          {
+            association: 'repliedTo',
+            attributes: ['id', 'content', 'fileUrl', 'fileType', 'fileName', 'senderId'],
+            include: [{ association: 'sender', attributes: ['id', 'username', 'displayName'] }]
+          }
+        ]
+      });
+    }
+
     socket.on('send-message', async (data, callback) => {
       try {
-        const { receiverId, content, fileUrl, fileType, fileName, fileSize } = data;
+        const { receiverId, content, fileUrl, fileType, fileName, fileSize, replyToId } = data;
 
         const message = await Message.create({
           senderId: data.senderId,
@@ -49,14 +62,11 @@ module.exports = (io) => {
           fileUrl: fileUrl || null,
           fileType: fileType || null,
           fileName: fileName || null,
-          fileSize: fileSize || null
+          fileSize: fileSize || null,
+          replyTo: replyToId || null
         });
 
-        const populatedMessage = await Message.findByPk(message.id, {
-          include: [
-            { association: 'sender', attributes: ['id', 'username', 'displayName', 'profilePic'] }
-          ]
-        });
+        const populatedMessage = await populateMessage(message);
 
         const room = [data.senderId, receiverId].sort().join('-');
         io.to(room).emit('new-message', populatedMessage);
@@ -77,7 +87,7 @@ module.exports = (io) => {
 
     socket.on('send-group-message', async (data, callback) => {
       try {
-        const { groupId, content, fileUrl, fileType, fileName, fileSize } = data;
+        const { groupId, content, fileUrl, fileType, fileName, fileSize, replyToId } = data;
 
         const message = await Message.create({
           senderId: data.senderId,
@@ -86,14 +96,11 @@ module.exports = (io) => {
           fileUrl: fileUrl || null,
           fileType: fileType || null,
           fileName: fileName || null,
-          fileSize: fileSize || null
+          fileSize: fileSize || null,
+          replyTo: replyToId || null
         });
 
-        const populatedMessage = await Message.findByPk(message.id, {
-          include: [
-            { association: 'sender', attributes: ['id', 'username', 'displayName', 'profilePic'] }
-          ]
-        });
+        const populatedMessage = await populateMessage(message);
 
         const room = 'group:' + groupId;
         io.to(room).emit('new-group-message', populatedMessage);
@@ -116,6 +123,31 @@ module.exports = (io) => {
       } catch (error) {
         console.error('Send group message error:', error);
         if (callback) callback({ error: 'Failed to send message' });
+      }
+    });
+
+    socket.on('react-to-message', async ({ messageId, emoji, userId, roomType, roomId }) => {
+      try {
+        const message = await Message.findByPk(messageId);
+        if (!message) return;
+
+        const reactions = message.reactions || {};
+        if (!reactions[emoji]) reactions[emoji] = [];
+
+        const idx = reactions[emoji].indexOf(userId);
+        if (idx === -1) {
+          reactions[emoji].push(userId);
+        } else {
+          reactions[emoji].splice(idx, 1);
+          if (reactions[emoji].length === 0) delete reactions[emoji];
+        }
+
+        await message.update({ reactions });
+
+        const room = roomType === 'group' ? 'group:' + roomId : [userId, roomId].sort().join('-');
+        io.to(room).emit('message-reacted', { messageId, reactions, userId, emoji });
+      } catch (error) {
+        console.error('React error:', error);
       }
     });
 
