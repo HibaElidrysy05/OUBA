@@ -1411,6 +1411,17 @@ html, body {
   text-align: right;
 }
 
+.message-status {
+  font-size: 10px;
+  color: var(--text-light);
+  margin-left: 6px;
+  display: inline;
+}
+
+.message-status.read {
+  color: #4CAF50;
+}
+
 .message-received .message-time {
   color: var(--text-light);
 }

@@ -41,8 +41,11 @@
       </div>
       <div class="chat-header-actions">
         <a href="/groups" class="btn btn-sm"><i class="fas fa-arrow-left"></i></a>
+        <% if (members.some(m => m.userId === user.id && m.role === 'admin')) { %>
+          <button class="btn btn-sm" id="addMemberHeaderBtn" style="margin-left:4px"><i class="fas fa-user-plus"></i></button>
+        <% } %>
         <% if (group.createdBy === user.id) { %>
-          <button class="btn btn-sm" id="settingsBtn" style="margin-left:8px"><i class="fas fa-cog"></i></button>
+          <button class="btn btn-sm" id="settingsBtn" style="margin-left:4px"><i class="fas fa-cog"></i></button>
         <% } %>
         <button class="btn btn-sm btn-leave" id="leaveGroupBtn" style="margin-left:4px"><i class="fas fa-sign-out-alt"></i></button>
       </div>
@@ -77,6 +80,9 @@
               <% } %>
               <% if (msg.content) { %><p><%= msg.content %></p><% } %>
               <span class="message-time"><%= new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></span>
+              <% if (isMine) { %>
+                <span class="message-status <%= msg.read ? 'read' : '' %>"><%= msg.read ? 'Read' : 'Sent' %></span>
+              <% } %>
             </div>
           </div>
         <% }); %>
@@ -206,6 +212,9 @@ socket.on('new-group-message', function(msg) {
   if (msg.content) content += `<p>${msg.content}</p>`;
   const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   content += `<span class="message-time">${time}</span>`;
+  if (isMine) {
+    content += '<span class="message-status">Sent</span>';
+  }
 
   div.innerHTML = `<div class="message-content">${content}</div>`;
   messagesContainer.appendChild(div);
@@ -216,6 +225,16 @@ socket.on('group-typing', function(data) {
   if (data.userId !== userId) {
     typingIndicator.style.display = data.isTyping ? 'flex' : 'none';
   }
+});
+
+socket.on('messages-read', function(messageIds) {
+  messageIds.forEach(function(id) {
+    var el = document.querySelector('.message-sent[data-message-id="' + id + '"]');
+    if (el) {
+      var status = el.querySelector('.message-status');
+      if (status) { status.textContent = 'Read'; status.classList.add('read'); }
+    }
+  });
 });
 
 messageInput.addEventListener('input', function() {
@@ -305,8 +324,8 @@ function sendMessage() {
   socket.emit('group-typing', { userId, groupId, isTyping: false });
 }
 
-document.getElementById('addMemberBtn')?.addEventListener('click', function() {
-  fetch(`/group/${groupId}/members`)
+function openAddMember() {
+  fetch('/group/' + groupId + '/members')
     .then(r => r.json())
     .then(data => {
       const body = document.getElementById('addMemberBody');
@@ -355,6 +374,11 @@ document.getElementById('settingsBtn')?.addEventListener('click', function() {
   document.getElementById('editGroupName').value = '<%= group.name %>';
   document.getElementById('groupSettingsModal').style.display = 'flex';
 });
+
+document.getElementById('addMemberHeaderBtn')?.addEventListener('click', openAddMember);
+document.getElementById('addMemberBtn')?.addEventListener('click', openAddMember);
+
+function openAddMember() {
 
 function closeSettings() {
   document.getElementById('groupSettingsModal').style.display = 'none';

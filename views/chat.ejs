@@ -82,6 +82,9 @@
                 <p><%= msg.content %></p>
               <% } %>
               <span class="message-time"><%= new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></span>
+              <% if (isMine) { %>
+                <span class="message-status <%= msg.read ? 'read' : '' %>"><%= msg.read ? 'Read' : 'Sent' %></span>
+              <% } %>
             </div>
           </div>
         <% }); %>
@@ -186,6 +189,9 @@ socket.on('new-message', function(msg) {
   }
   const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   content += `<span class="message-time">${time}</span>`;
+  if (isMine) {
+    content += '<span class="message-status">Sent</span>';
+  }
 
   div.innerHTML = `<div class="message-content">${content}</div>`;
   messagesContainer.appendChild(div);
@@ -216,6 +222,16 @@ socket.on('user-status', function(data) {
       chatStatus.innerHTML = '<span class="status-dot offline"></span> Offline';
     }
   }
+});
+
+socket.on('messages-read', function(messageIds) {
+  messageIds.forEach(function(id) {
+    var el = document.querySelector('.message-sent[data-message-id="' + id + '"]');
+    if (el) {
+      var status = el.querySelector('.message-status');
+      if (status) { status.textContent = 'Read'; status.classList.add('read'); }
+    }
+  });
 });
 
 messageInput.addEventListener('input', function() {

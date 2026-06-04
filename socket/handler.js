@@ -121,10 +121,24 @@ module.exports = (io) => {
 
     socket.on('mark-read', async ({ messageIds }) => {
       try {
+        const messages = await Message.findAll({
+          where: { id: messageIds },
+          attributes: ['id', 'senderId']
+        });
+
         await Message.update(
           { read: true },
           { where: { id: messageIds } }
         );
+
+        const bySender = {};
+        messages.forEach(m => {
+          if (!bySender[m.senderId]) bySender[m.senderId] = [];
+          bySender[m.senderId].push(m.id);
+        });
+        Object.keys(bySender).forEach(senderId => {
+          io.to('user:' + senderId).emit('messages-read', bySender[senderId]);
+        });
       } catch (error) {
         console.error('Mark read error:', error);
       }
