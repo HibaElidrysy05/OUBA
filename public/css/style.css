@@ -303,6 +303,17 @@ html, body {
   text-decoration: none;
 }
 
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--pink);
+  color: var(--pink);
+}
+
+.btn-outline:hover {
+  background: var(--pink);
+  color: var(--white);
+}
+
 .btn-primary {
   background: linear-gradient(135deg, var(--pink) 0%, var(--pink-medium) 100%);
   color: var(--white);
@@ -783,6 +794,13 @@ html, body {
 .friend-badge.pending {
   background: #FFF3CD;
   color: #856404;
+}
+
+.bio-text {
+  font-size: 14px;
+  color: var(--text-medium);
+  margin-top: 8px;
+  line-height: 1.5;
 }
 
 /* Pending Requests */

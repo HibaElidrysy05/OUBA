@@ -64,7 +64,7 @@
         <% if (friends && friends.length > 0) { %>
           <div class="friends-grid">
             <% friends.slice(0, 6).forEach(function(friend) { %>
-              <a href="/chat/<%= friend.id %>" class="friend-mini-card">
+              <a href="/profile/<%= friend.id %>" class="friend-mini-card">
                 <div class="avatar-wrapper">
                   <% if (friend.profilePic) { %>
                     <img src="<%= friend.profilePic %>" alt="">

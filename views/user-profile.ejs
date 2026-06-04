@@ -1,0 +1,55 @@
+<%- include('partials/header', { title: `${profileUser.displayName || profileUser.username} - Ouba`, activeNav: '' }) %>
+<div class="profile-page">
+  <div class="profile-card">
+    <div class="profile-header-section">
+      <div class="profile-pic-container">
+        <% if (profileUser.profilePic) { %>
+          <img src="<%= profileUser.profilePic %>" alt="Profile">
+        <% } else { %>
+          <div class="avatar-placeholder large"><%= (profileUser.displayName || profileUser.username)[0].toUpperCase() %></div>
+        <% } %>
+      </div>
+      <h1><%= profileUser.displayName || profileUser.username %></h1>
+      <p class="username">@<%= profileUser.username %></p>
+      <% if (profileUser.bio) { %>
+        <p class="bio-text"><%= profileUser.bio %></p>
+      <% } %>
+      <% if (isFriend) { %>
+        <span class="friend-badge accepted" style="display:inline-block;margin-top:8px"><i class="fas fa-check-circle"></i> Friend</span>
+      <% } %>
+      <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <a href="/chat/<%= profileUser.id %>" class="btn btn-primary"><i class="fas fa-comment"></i> Send Message</a>
+        <% if (!isFriend && profileUser.id !== user.id) { %>
+          <button class="btn btn-outline" onclick="sendRequest('<%= profileUser.id %>')"><i class="fas fa-user-plus"></i> Add Friend</button>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const socket = window.appSocket || io({ transports: ['websocket', 'polling'] });
+const userId = '<%= user.id %>';
+
+function sendRequest(id) {
+  fetch('/friend-request/' + id, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showToast('Friend request sent!');
+      } else {
+        showToast(data.error || 'Failed', 'error');
+      }
+    });
+}
+
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = 'toast toast-' + (type || 'success');
+  t.innerHTML = msg;
+  document.body.appendChild(t);
+  setTimeout(function() { t.classList.add('show'); }, 10);
+  setTimeout(function() { t.classList.remove('show'); setTimeout(function() { t.remove(); }, 300); }, 3000);
+}
+</script>
+<%- include('partials/footer') %>

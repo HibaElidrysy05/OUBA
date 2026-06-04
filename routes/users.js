@@ -247,6 +247,34 @@ router.get('/friends', async (req, res) => {
   }
 });
 
+router.get('/profile/:id', async (req, res) => {
+  try {
+    const currentUserId = req.session.userId;
+    if (req.params.id === currentUserId) return res.redirect('/profile');
+
+    const profileUser = await User.findByPk(req.params.id, {
+      attributes: ['id', 'username', 'displayName', 'profilePic', 'bio']
+    });
+    if (!profileUser) return res.redirect('/friends');
+
+    const currentUser = await User.findByPk(currentUserId);
+    const friends = await currentUser.getFriends();
+    const isFriend = friends.some(f => f.id === profileUser.id);
+
+    res.render('user-profile', {
+      title: `${profileUser.displayName || profileUser.username} - Ouba`,
+      user: currentUser,
+      profileUser,
+      isFriend,
+      error: null,
+      success: null
+    });
+  } catch (error) {
+    console.error('Profile view error:', error);
+    res.redirect('/');
+  }
+});
+
 router.get('/user/:id', async (req, res) => {
   try {
     const currentUserId = req.session.userId;

@@ -51,7 +51,7 @@
       <% if (friends && friends.length > 0) { %>
         <div class="friends-list">
           <% friends.forEach(function(friend) { %>
-            <a href="/chat/<%= friend.id %>" class="friend-item">
+            <a href="/profile/<%= friend.id %>" class="friend-item">
               <div class="friend-avatar">
                 <% if (friend.profilePic) { %>
                   <img src="<%= friend.profilePic %>" alt="">
