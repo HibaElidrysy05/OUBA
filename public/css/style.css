@@ -1651,7 +1651,7 @@ html, body {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 50;
+    z-index: 200;
     margin: 0;
     height: 100%;
     background: var(--pink-lightest);
@@ -1693,6 +1693,7 @@ html, body {
   }
 
   .chat-input {
+    flex-shrink: 0;
     padding: 8px 12px;
     padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
   }
