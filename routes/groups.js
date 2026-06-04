@@ -147,7 +147,6 @@ router.get('/group/:id/members', async (req, res) => {
 
     const currentUser = await User.findByPk(req.session.userId);
     const friends = await currentUser.getFriends();
-    const friendIds = friends.map(f => f.id);
     const memberIds = members.map(m => m.userId);
 
     const addableFriends = friends.filter(f => !memberIds.includes(f.id));
@@ -155,6 +154,46 @@ router.get('/group/:id/members', async (req, res) => {
     res.json({ members, addableFriends });
   } catch (error) {
     res.status(500).json({ error: 'Failed to get members' });
+  }
+});
+
+router.post('/group/:id/edit', async (req, res) => {
+  try {
+    const group = await Group.findByPk(req.params.id);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+    if (group.createdBy !== req.session.userId) {
+      return res.status(403).json({ error: 'Only the creator can edit the group' });
+    }
+
+    const { name } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Group name is required' });
+    }
+
+    await group.update({ name: name.trim() });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Edit group error:', error);
+    res.status(500).json({ error: 'Failed to edit group' });
+  }
+});
+
+router.post('/group/:id/delete', async (req, res) => {
+  try {
+    const group = await Group.findByPk(req.params.id);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+    if (group.createdBy !== req.session.userId) {
+      return res.status(403).json({ error: 'Only the creator can delete the group' });
+    }
+
+    await GroupMember.destroy({ where: { groupId: group.id } });
+    await Message.update({ groupId: null }, { where: { groupId: group.id } });
+    await group.destroy();
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete group error:', error);
+    res.status(500).json({ error: 'Failed to delete group' });
   }
 });
 

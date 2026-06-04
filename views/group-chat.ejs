@@ -41,6 +41,10 @@
       </div>
       <div class="chat-header-actions">
         <a href="/groups" class="btn btn-sm"><i class="fas fa-arrow-left"></i></a>
+        <% if (group.createdBy === user.id) { %>
+          <button class="btn btn-sm" id="settingsBtn" style="margin-left:8px"><i class="fas fa-cog"></i></button>
+        <% } %>
+        <button class="btn btn-sm btn-leave" id="leaveGroupBtn" style="margin-left:4px"><i class="fas fa-sign-out-alt"></i></button>
       </div>
     </div>
 
@@ -119,6 +123,25 @@
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeAddMember()">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="groupSettingsModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Group Settings</h2>
+      <button class="modal-close" onclick="closeSettings()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="editGroupName">Group Name</label>
+        <input type="text" id="editGroupName" value="<%= group.name %>" maxlength="100">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveGroupName()">Save</button>
     </div>
   </div>
 </div>
@@ -327,6 +350,53 @@ function addMember(friendId) {
 function closeAddMember() {
   document.getElementById('addMemberModal').style.display = 'none';
 }
+
+document.getElementById('settingsBtn')?.addEventListener('click', function() {
+  document.getElementById('editGroupName').value = '<%= group.name %>';
+  document.getElementById('groupSettingsModal').style.display = 'flex';
+});
+
+function closeSettings() {
+  document.getElementById('groupSettingsModal').style.display = 'none';
+}
+
+function saveGroupName() {
+  const name = document.getElementById('editGroupName').value.trim();
+  if (!name) return showToast('Group name is required', 'error');
+  fetch('/group/<%= group.id %>/edit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showToast('Group name updated!');
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        showToast(data.error || 'Failed to update', 'error');
+      }
+    });
+}
+
+document.getElementById('leaveGroupBtn')?.addEventListener('click', function() {
+  if ('<%= group.createdBy %>' === '<%= user.id %>') {
+    if (!confirm('As the creator, deleting the group will remove it for everyone. Continue?')) return;
+  } else if (!confirm('Leave this group?')) return;
+
+  fetch('/group/<%= group.id %>/leave', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        window.location.href = '/groups';
+      } else {
+        showToast(data.error || 'Failed to leave', 'error');
+      }
+    });
+});
 
 function showToast(msg, type) {
   const t = document.createElement('div');

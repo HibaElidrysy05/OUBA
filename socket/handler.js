@@ -1,5 +1,4 @@
 const { Message, User, Group, GroupMember } = require('../models');
-const { Op } = require('sequelize');
 
 const onlineUsers = new Map();
 
@@ -11,6 +10,7 @@ module.exports = (io) => {
       onlineUsers.set(userId.toString(), socket.id);
       socket.userId = userId.toString();
       socket.join('global');
+      socket.join('user:' + userId.toString());
       const onlineArray = Array.from(onlineUsers.keys());
       socket.emit('initial-status', onlineArray);
       socket.to('global').emit('user-status', { userId: userId.toString(), status: 'online' });
@@ -23,7 +23,7 @@ module.exports = (io) => {
     });
 
     socket.on('join-group', (groupId) => {
-      const room = `group:${groupId}`;
+      const room = 'group:' + groupId;
       socket.join(room);
       socket.currentRoom = room;
     });
@@ -34,7 +34,7 @@ module.exports = (io) => {
     });
 
     socket.on('group-typing', ({ userId, groupId, isTyping }) => {
-      const room = `group:${groupId}`;
+      const room = 'group:' + groupId;
       socket.to(room).emit('group-typing', { userId, isTyping });
     });
 
@@ -61,16 +61,12 @@ module.exports = (io) => {
         const room = [data.senderId, receiverId].sort().join('-');
         io.to(room).emit('new-message', populatedMessage);
 
-        const receiverSocketId = onlineUsers.get(receiverId.toString());
-        if (receiverSocketId) {
-          io.to(receiverSocketId).emit('notification', {
-            type: 'message',
-            from: data.senderId,
-            sender: populatedMessage.sender,
-            content: content || (fileUrl ? 'Sent a file' : ''),
-            chatUrl: `/chat/${data.senderId}`
-          });
-        }
+        io.to('user:' + receiverId).emit('new-message-alert', {
+          type: 'dm',
+          sender: populatedMessage.sender,
+          content: content || (fileUrl ? 'Sent a file' : ''),
+          chatUrl: '/chat/' + data.senderId
+        });
 
         if (callback) callback({ success: true, message: populatedMessage });
       } catch (error) {
@@ -99,8 +95,22 @@ module.exports = (io) => {
           ]
         });
 
-        const room = `group:${groupId}`;
+        const room = 'group:' + groupId;
         io.to(room).emit('new-group-message', populatedMessage);
+
+        const group = await Group.findByPk(groupId, { attributes: ['id', 'name'] });
+        const members = await GroupMember.findAll({ where: { groupId } });
+        members.forEach(m => {
+          if (m.userId !== data.senderId) {
+            io.to('user:' + m.userId).emit('new-message-alert', {
+              type: 'group',
+              groupName: group ? group.name : 'Group',
+              sender: populatedMessage.sender,
+              content: content || (fileUrl ? 'Sent a file' : ''),
+              chatUrl: '/group/' + groupId
+            });
+          }
+        });
 
         if (callback) callback({ success: true, message: populatedMessage });
       } catch (error) {

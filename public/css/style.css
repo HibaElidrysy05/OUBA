@@ -1633,6 +1633,26 @@ html, body {
   border: 2px solid #FFB3B3;
 }
 
+.toast-info {
+  background: var(--white);
+  color: var(--text-dark);
+  border: 2px solid var(--pink-light);
+}
+
+.global-toast {
+  bottom: auto !important;
+  top: 16px;
+  cursor: pointer;
+  max-width: 90vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.global-toast:hover {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

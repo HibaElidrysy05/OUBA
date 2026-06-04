@@ -3,10 +3,10 @@
     window.appSocket = io({ transports: ['websocket', 'polling'] });
 
     function updateOnlineStatus(userId, status) {
-      const dots = document.querySelectorAll(`.status-dot[data-user-id="${userId}"]`);
-      dots.forEach(dot => {
-        dot.className = `status-dot ${status}`;
-        const txt = dot.nextElementSibling;
+      const dots = document.querySelectorAll('.status-dot[data-user-id="' + userId + '"]');
+      dots.forEach(function (dot) {
+        dot.className = 'status-dot ' + status;
+        var txt = dot.nextElementSibling;
         if (txt && txt.classList.contains('status-text')) {
           txt.textContent = status === 'online' ? 'Online' : 'Offline';
         }
@@ -14,26 +14,51 @@
     }
 
     function applyInitialStatus(onlineIds) {
-      const allDots = document.querySelectorAll('.status-dot[data-user-id]');
-      allDots.forEach(dot => {
-        const uid = dot.dataset.userId;
-        const isOnline = onlineIds.includes(uid);
-        dot.className = `status-dot ${isOnline ? 'online' : 'offline'}`;
+      var allDots = document.querySelectorAll('.status-dot[data-user-id]');
+      allDots.forEach(function (dot) {
+        var uid = dot.dataset.userId;
+        dot.className = 'status-dot ' + (onlineIds.indexOf(uid) !== -1 ? 'online' : 'offline');
       });
     }
 
-    window.appSocket.on('connect', () => {
-      const userId = document.body.dataset.userId;
+    function showGlobalToast(msg, type, link) {
+      var existing = document.querySelector('.global-toast');
+      if (existing) existing.remove();
+
+      var toast = document.createElement('div');
+      toast.className = 'global-toast toast toast-' + (type || 'info');
+      if (link) {
+        var a = document.createElement('a');
+        a.href = link;
+        a.style.color = 'inherit';
+        a.style.textDecoration = 'none';
+        a.textContent = msg;
+        toast.appendChild(a);
+      } else {
+        toast.textContent = msg;
+      }
+      document.body.appendChild(toast);
+      setTimeout(function () { toast.classList.add('show'); }, 10);
+      setTimeout(function () {
+        toast.classList.remove('show');
+        setTimeout(function () { if (toast.parentNode) toast.remove(); }, 300);
+      }, 4000);
+    }
+
+    window.showGlobalToast = showGlobalToast;
+
+    window.appSocket.on('connect', function () {
+      var userId = document.body.dataset.userId;
       if (userId) {
         window.appSocket.emit('user-online', userId);
       }
     });
 
-    window.appSocket.on('initial-status', (onlineIds) => {
+    window.appSocket.on('initial-status', function (onlineIds) {
       applyInitialStatus(onlineIds);
     });
 
-    window.appSocket.on('user-status', (data) => {
+    window.appSocket.on('user-status', function (data) {
       updateOnlineStatus(data.userId, data.status);
     });
 
@@ -41,11 +66,19 @@
       Notification.requestPermission();
     }
 
-    window.appSocket.on('notification', (data) => {
+    window.appSocket.on('new-message-alert', function (data) {
+      var senderName = data.sender ? (data.sender.displayName || data.sender.username) : 'Someone';
+      var prefix = data.type === 'group' ? '[' + data.groupName + '] ' : '';
+      var msg = prefix + senderName + ': ' + data.content;
+
+      showGlobalToast(msg, 'info', data.chatUrl);
+
       if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-        const senderName = data.sender ? (data.sender.displayName || data.sender.username) : 'Someone';
-        new Notification(`Ouba - ${senderName}`, {
-          body: data.content || 'Sent you a message',
+        var notifTitle = data.type === 'group'
+          ? 'Ouba - ' + data.groupName
+          : 'Ouba - ' + senderName;
+        new Notification(notifTitle, {
+          body: data.content,
           icon: data.sender && data.sender.profilePic ? data.sender.profilePic : '/favicon.ico'
         });
       }
