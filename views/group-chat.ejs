@@ -62,9 +62,9 @@
                 <div class="group-message-header">
                   <a href="/profile/<%= msg.sender.id %>" class="group-message-avatar">
                     <% if (msg.sender.profilePic) { %>
-                      <img src="<%= msg.sender.profilePic %>" alt="">
+                      <img src="<%= msg.sender.profilePic %>" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover">
                     <% } else { %>
-                      <div class="avatar-placeholder" style="width:28px;height:28px;font-size:12px;display:inline-flex"><%= (msg.sender.displayName || msg.sender.username || '?')[0].toUpperCase() %></div>
+                      <div class="avatar-placeholder" style="width:22px;height:22px;font-size:10px;display:inline-flex"><%= (msg.sender.displayName || msg.sender.username || '?')[0].toUpperCase() %></div>
                     <% } %>
                   </a>
                   <a href="/profile/<%= msg.sender.id %>" class="group-message-sender"><%= msg.sender.displayName || msg.sender.username %></a>
@@ -300,8 +300,8 @@ socket.on('new-group-message', function(msg) {
   let content = '';
   if (!isMine) {
     const senderAvatar = msg.sender.profilePic
-      ? '<img src="' + escapeHtml(msg.sender.profilePic) + '" alt="" style="width:28px;height:28px;border-radius:50%;object-fit:cover">'
-      : '<div class="avatar-placeholder" style="width:28px;height:28px;font-size:12px;display:inline-flex;align-items:center;justify-content:center">' + escapeHtml((msg.sender.displayName || msg.sender.username || '?')[0].toUpperCase()) + '</div>';
+      ? '<img src="' + escapeHtml(msg.sender.profilePic) + '" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover">'
+      : '<div class="avatar-placeholder" style="width:22px;height:22px;font-size:10px;display:inline-flex;align-items:center;justify-content:center">' + escapeHtml((msg.sender.displayName || msg.sender.username || '?')[0].toUpperCase()) + '</div>';
     content += '<div class="group-message-header"><a href="/profile/' + escapeHtml(msg.sender.id) + '" class="group-message-avatar">' + senderAvatar + '</a><a href="/profile/' + escapeHtml(msg.sender.id) + '" class="group-message-sender">' + escapeHtml(msg.sender.displayName || msg.sender.username) + '</a></div>';
   }
   if (msg.repliedTo) {
