@@ -56,6 +56,7 @@
       var userId = document.body.dataset.userId;
       if (userId) {
         window.appSocket.emit('user-online', userId);
+        subscribePush(userId);
       }
     });
 
@@ -94,6 +95,44 @@
         });
       }
     });
+
+    async function subscribePush(userId) {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      if (localStorage.getItem('push-subscribed') === 'true') return;
+      try {
+        var reg = await navigator.serviceWorker.ready;
+        var sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          localStorage.setItem('push-subscribed', 'true');
+          return;
+        }
+        var resp = await fetch('/vapid-public-key');
+        var data = await resp.json();
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(data.publicKey)
+        });
+        await fetch('/push-subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: sub.endpoint, keys: sub.toJSON().keys })
+        });
+        localStorage.setItem('push-subscribed', 'true');
+      } catch (e) {
+        console.warn('Push subscription failed:', e);
+      }
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+      var padding = '='.repeat((4 - base64String.length % 4) % 4);
+      var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      var rawData = window.atob(base64);
+      var output = new Uint8Array(rawData.length);
+      for (var i = 0; i < rawData.length; ++i) {
+        output[i] = rawData.charCodeAt(i);
+      }
+      return output;
+    }
 
     var installPrompt = null;
     window.addEventListener('beforeinstallprompt', function (e) {

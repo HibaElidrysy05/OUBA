@@ -5,6 +5,7 @@ const FriendRequest = require('./FriendRequest');
 const Group = require('./Group');
 const GroupMember = require('./GroupMember');
 const PasswordResetToken = require('./PasswordResetToken');
+const PushSubscription = require('./PushSubscription');
 
 User.hasMany(PasswordResetToken, { as: 'ResetTokens', foreignKey: 'userId' });
 PasswordResetToken.belongsTo(User, { foreignKey: 'userId' });
@@ -54,6 +55,9 @@ User.belongsToMany(Group, {
 Message.belongsTo(Group, { foreignKey: 'groupId' });
 Group.hasMany(Message, { as: 'Messages', foreignKey: 'groupId' });
 
+User.hasMany(PushSubscription, { foreignKey: 'userId' });
+PushSubscription.belongsTo(User, { foreignKey: 'userId' });
+
 const syncDB = async () => {
   try {
     await sequelize.sync({ alter: true });
@@ -63,4 +67,4 @@ const syncDB = async () => {
   }
 };
 
-module.exports = { User, Message, FriendRequest, Group, GroupMember, PasswordResetToken, syncDB };
+module.exports = { User, Message, FriendRequest, Group, GroupMember, PasswordResetToken, PushSubscription, syncDB };

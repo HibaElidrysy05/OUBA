@@ -1,4 +1,5 @@
-const { Message, User, Group, GroupMember } = require('../models');
+const { Message, User, Group, GroupMember, PushSubscription } = require('../models');
+const { webpush } = require('../config/push');
 
 const onlineUsers = new Map();
 const disconnectTimers = new Map();
@@ -6,6 +7,26 @@ const disconnectTimers = new Map();
 module.exports = (io) => {
   io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
+
+    async function sendPush(userId, title, body, url) {
+      try {
+        const subs = await PushSubscription.findAll({ where: { userId } });
+        for (const sub of subs) {
+          try {
+            await webpush.sendNotification({
+              endpoint: sub.endpoint,
+              keys: { auth: sub.auth, p256dh: sub.p256dh }
+            }, JSON.stringify({ title, body, url }));
+          } catch (err) {
+            if (err.statusCode === 410 || err.statusCode === 404) {
+              await sub.destroy();
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Push send error:', err);
+      }
+    }
 
     socket.on('user-online', (userId) => {
       const uid = userId.toString();
@@ -84,6 +105,12 @@ module.exports = (io) => {
           chatUrl: '/chat/' + data.senderId
         });
 
+        const receiverSockets = await io.in('user:' + receiverId).fetchSockets();
+        if (receiverSockets.length === 0) {
+          const senderName = populatedMessage.sender.displayName || populatedMessage.sender.username;
+          sendPush(receiverId, 'Ouba - ' + senderName, content || (fileUrl ? 'Sent a file' : ''), '/chat/' + data.senderId);
+        }
+
         if (callback) callback({ success: true, message: populatedMessage });
       } catch (error) {
         console.error('Send message error:', error);
@@ -134,7 +161,7 @@ module.exports = (io) => {
 
         const group = await Group.findByPk(groupId, { attributes: ['id', 'name'] });
         const allMembers = await GroupMember.findAll({ where: { groupId } });
-        allMembers.forEach(m => {
+        allMembers.forEach(async m => {
           if (m.userId !== data.senderId) {
             io.to('user:' + m.userId).emit('new-message-alert', {
               type: 'group',
@@ -144,6 +171,15 @@ module.exports = (io) => {
               chatUrl: '/group/' + groupId,
               mentioned: mentionIds.includes(m.userId)
             });
+            const memberSockets = await io.in('user:' + m.userId).fetchSockets();
+            if (memberSockets.length === 0) {
+              const senderName = populatedMessage.sender.displayName || populatedMessage.sender.username;
+              const groupName = group ? group.name : 'Group';
+              const pushBody = mentionIds.includes(m.userId)
+                ? senderName + ' mentioned you in ' + groupName
+                : (content || (fileUrl ? 'Sent a file' : ''));
+              sendPush(m.userId, 'Ouba - ' + groupName, pushBody, '/group/' + groupId);
+            }
           }
         });
 
