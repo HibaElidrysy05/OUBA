@@ -17,13 +17,54 @@
       <% }); %>
     </ul>
   <% } else { %>
-    <p style="color:red">No subscriptions found. Tap "Enable Notifications" in the sidebar.</p>
+    <p style="color:red">No subscriptions found.</p>
   <% } %>
-  <button onclick="testPush()" style="padding:10px 20px;background:#FFB6C1;border:none;border-radius:8px;color:white;font-weight:600;cursor:pointer">Send Test Notification</button>
-  <button onclick="checkBrowser()" style="padding:10px 20px;background:#ddd;border:none;border-radius:8px;margin-left:8px;cursor:pointer">Check Browser Status</button>
+  <button onclick="enableNotifs()" style="padding:10px 20px;background:#FFB6C1;border:none;border-radius:8px;color:white;font-weight:600;cursor:pointer">🔔 Enable Notifications</button>
+  <button onclick="testPush()" style="padding:10px 20px;background:#7ec8e3;border:none;border-radius:8px;color:white;font-weight:600;cursor:pointer">Send Test Push</button>
+  <button onclick="checkBrowser()" style="padding:10px 20px;background:#ddd;border:none;border-radius:8px;margin:8px;cursor:pointer">Check Browser Status</button>
   <pre id="result" style="margin-top:16px;background:#f5f5f5;padding:12px;border-radius:8px;font-size:12px"></pre>
 </div>
 <script>
+async function enableNotifs() {
+  var pre = document.getElementById('result');
+  pre.textContent = 'Requesting permission...';
+  if (!('Notification' in window)) { pre.textContent = 'Notification API not available'; return; }
+  var perm = Notification.permission;
+  if (perm === 'denied') { pre.textContent = 'Notifications are blocked. Go to Settings > Notifications > Ouba to enable.'; return; }
+  if (perm === 'default') {
+    perm = await Notification.requestPermission();
+    pre.textContent = 'Permission result: ' + perm;
+    if (perm !== 'granted') return;
+  }
+  pre.textContent = 'Permission granted! Subscribing to push...';
+  if (!('serviceWorker' in navigator)) { pre.textContent = 'Service Worker not available'; return; }
+  try {
+    var reg = await navigator.serviceWorker.ready;
+    var resp = await fetch('/vapid-public-key');
+    var data = await resp.json();
+    if (!data.publicKey) { pre.textContent = 'No VAPID public key on server'; return; }
+    var sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(data.publicKey)
+    });
+    var saveResp = await fetch('/push-subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: sub.endpoint, keys: sub.toJSON().keys })
+    });
+    var saveData = await saveResp.json();
+    pre.textContent = saveData.success ? 'SUCCESS! Notifications enabled! Close and test.' : 'Save failed: ' + JSON.stringify(saveData);
+    location.reload();
+  } catch(e) { pre.textContent = 'Error: ' + e.message; }
+}
+function urlBase64ToUint8Array(base64String) {
+  var padding = '='.repeat((4 - base64String.length % 4) % 4);
+  var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var rawData = window.atob(base64);
+  var output = new Uint8Array(rawData.length);
+  for (var i = 0; i < rawData.length; ++i) { output[i] = rawData.charCodeAt(i); }
+  return output;
+}
 async function testPush() {
   var pre = document.getElementById('result');
   pre.textContent = 'Sending...';

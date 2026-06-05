@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= typeof title !== 'undefined' ? title : 'Ouba' %></title>
-  <link rel="stylesheet" href="/css/style.css?v=10">
+  <link rel="stylesheet" href="/css/style.css?v=11">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/img/icon.svg">
@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#FFB6C1">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
-  <script src="/js/app.js?v=9"></script>
+  <script src="/js/app.js?v=10"></script>
   <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -51,6 +51,7 @@
     }
   }
   window.updateNotifButton = updateNotifButton;
+  updateNotifButton();
   document.addEventListener('DOMContentLoaded', updateNotifButton);
   </script>
 </head>
@@ -112,7 +113,7 @@
         </a>
       </div>
       <div class="sidebar-footer">
-        <a href="#" class="nav-item" id="notifToggle" onclick="toggleNotifications();return false" style="display:none">
+        <a href="#" class="nav-item" id="notifToggle" onclick="toggleNotifications();return false">
           <i class="fas fa-bell" id="notifIcon"></i>
           <span id="notifText">Enable Notifications</span>
         </a>
