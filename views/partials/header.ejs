@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= typeof title !== 'undefined' ? title : 'Ouba' %></title>
-  <link rel="stylesheet" href="/css/style.css?v=11">
+  <link rel="stylesheet" href="/css/style.css?v=12">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/img/icon.svg">
@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#FFB6C1">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
-  <script src="/js/app.js?v=10"></script>
+  <script src="/js/app.js?v=11"></script>
   <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -31,6 +31,17 @@
   if (window.innerWidth < 769) {
     window.addEventListener('load', showInstallBanner);
   }
+  function updateNotifBanner() {
+    var nb = document.getElementById('notifBanner');
+    if (!nb) return;
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) { nb.style.display = 'none'; return; }
+    if (Notification.permission === 'granted' && localStorage.getItem('push-subscribed') === 'true') {
+      nb.style.display = 'none';
+    } else {
+      nb.style.display = 'flex';
+    }
+  }
+  window.updateNotifBanner = updateNotifBanner;
   function updateNotifButton() {
     var btn = document.getElementById('notifToggle');
     if (!btn) return;
@@ -52,7 +63,8 @@
   }
   window.updateNotifButton = updateNotifButton;
   updateNotifButton();
-  document.addEventListener('DOMContentLoaded', updateNotifButton);
+  updateNotifBanner();
+  document.addEventListener('DOMContentLoaded', function() { updateNotifButton(); updateNotifBanner(); });
   </script>
 </head>
 <body data-user-id="<%= typeof currentUser !== 'undefined' && currentUser ? currentUser.id : '' %>">
@@ -124,6 +136,10 @@
       </div>
     </nav>
     <div class="main-content">
+    <div id="notifBanner" style="display:none;background:#FFE4EC;border-radius:12px;padding:12px 16px;margin:0 20px 16px;align-items:center;gap:12px;font-size:14px">
+      <span style="flex:1">🔔 Get notified when someone messages you</span>
+      <button onclick="toggleNotifications();return false" style="background:#FFB6C1;border:none;padding:8px 20px;border-radius:20px;color:white;font-weight:600;cursor:pointer;white-space:nowrap">Enable Notifications</button>
+    </div>
     <% } else { %>
     <div class="main-content full-width">
     <% } %>

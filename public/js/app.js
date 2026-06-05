@@ -137,6 +137,7 @@
         localStorage.setItem('push-subscribed', 'true');
         localStorage.setItem('vapid-public-key', data.publicKey);
         if (window.updateNotifButton) window.updateNotifButton();
+        if (window.updateNotifBanner) window.updateNotifBanner();
         console.log('Push subscribed successfully');
       } catch (e) {
         console.warn('Push subscription failed:', e);
@@ -181,6 +182,7 @@
         localStorage.setItem('push-subscribed', 'true');
         localStorage.setItem('vapid-public-key', data.publicKey);
         if (window.updateNotifButton) window.updateNotifButton();
+        if (window.updateNotifBanner) window.updateNotifBanner();
         console.log('Push subscribed from button');
       } catch (e) {
         console.warn('Manual subscribe failed:', e);
