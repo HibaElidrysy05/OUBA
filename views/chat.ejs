@@ -78,51 +78,11 @@
                         <a href="<%= msg.fileUrl %>" target="_blank" class="file-name"><%= msg.fileName || 'File' %></a>
                         <% if (msg.fileSize) { %>
                           <span class="file-size"><%= (msg.fileSize / 1024 / 1024).toFixed(1) %> MB</span>
-                        <% } %>
-                      </div>
-                      <a href="<%= msg.fileUrl %>" download class="file-download"><i class="fas fa-download"></i></a>
-                    </div>
-                  <% } %>
-                </div>
-              <% } %>
-              <% if (msg.content) { %>
-                <p><%= msg.content %></p>
-              <% } %>
-              <span class="message-time"><%= new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></span>
-              <button class="btn-reply" onclick="setReply('<%= msg.id %>', '<%= (msg.sender.displayName || msg.sender.username).replace(/'/g, "\\'") %>', '<%= (msg.content || '').replace(/'/g, "\\'").substring(0, 50).replace(/\\n/g, ' ') %>')" title="Reply"><i class="fas fa-reply"></i></button>
-              <% if (isMine) { %>
-                <button class="btn-delete-msg" onclick="deleteMsg('<%= msg.id %>', 'dm', '<%= friend.id %>')" title="Delete"><i class="fas fa-trash"></i></button>
-              <% } %>
-            </div>
-            <% if (isMine) { %>
-              <span class="message-status <%= msg.read ? 'read' : '' %>"><%= msg.read ? 'Read' : 'Sent' %></span>
-            <% } %>
-            <% if (msg.reactions && Object.keys(msg.reactions).length > 0) { %>
-              <div class="message-reactions">
-                <% Object.keys(msg.reactions).forEach(function(emoji) { %>
-                  <span class="reaction-badge <%= (msg.reactions[emoji].indexOf(user.id) !== -1) ? 'mine' : '' %>" onclick="toggleReaction('<%= msg.id %>', '<%= emoji %>', 'dm', '<%= friend.id %>')"><i class="fas <%= { '❤️':'fa-heart','😂':'fa-face-laugh-squint','😮':'fa-face-surprise','😢':'fa-face-sad-tear','😡':'fa-face-angry','👍':'fa-thumbs-up' }[emoji] || 'fa-heart' %>"></i> <%= msg.reactions[emoji].length %></span>
-                <% }); %>
-              </div>
-            <% } %>
-            <div class="message-emoji-bar">
-              <span onclick="toggleReaction('<%= msg.id %>', '❤️', 'dm', '<%= friend.id %>')"><i class="fas fa-heart"></i></span>
-              <span onclick="toggleReaction('<%= msg.id %>', '😂', 'dm', '<%= friend.id %>')"><i class="fas fa-face-laugh-squint"></i></span>
-              <span onclick="toggleReaction('<%= msg.id %>', '😮', 'dm', '<%= friend.id %>')"><i class="fas fa-face-surprise"></i></span>
-              <span onclick="toggleReaction('<%= msg.id %>', '😢', 'dm', '<%= friend.id %>')"><i class="fas fa-face-sad-tear"></i></span>
-              <span onclick="toggleReaction('<%= msg.id %>', '😡', 'dm', '<%= friend.id %>')"><i class="fas fa-face-angry"></i></span>
-              <span onclick="toggleReaction('<%= msg.id %>', '👍', 'dm', '<%= friend.id %>')"><i class="fas fa-thumbs-up"></i></span>
-            </div>
-          </div>
-        <% }); %>
-      <% } else { %>
-        <div class="empty-state chat-empty">
-          <i class="fas fa-comment-dots"></i>
-          <p>No messages yet</p>
-          <p class="sub-text">Say hello to <%= friend.displayName || friend.username %>! 💕</p>
-        </div>
       <% } %>
+      <div class="typing-indicator" id="typingIndicator" style="display:none">
+        <span></span><span></span><span></span> typing...
+      </div>
     </div>
-
     <div id="replyPreview" class="reply-preview-bar" style="display:none">
       <div class="reply-preview-info">
         <i class="fas fa-reply"></i>
@@ -151,9 +111,6 @@
         <span id="previewFileName"></span>
       </div>
       <button type="button" class="preview-remove" onclick="clearFilePreview()"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="typing-indicator" id="typingIndicator" style="display:none">
-      <span></span><span></span><span></span> typing...
     </div>
   </div>
 </div>
