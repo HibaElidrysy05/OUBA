@@ -103,13 +103,15 @@
           <span>Admin</span>
         </a>
         <% } %>
+        <a href="/push/debug" class="nav-item">
+          <i class="fas fa-bug"></i><span>Push Debug</span>
+        </a>
         <a href="/logout" class="nav-item mobile-logout">
           <i class="fas fa-sign-out-alt"></i>
           <span>Logout</span>
         </a>
       </div>
       <div class="sidebar-footer">
-        <a href="/push/debug" class="nav-item"><i class="fas fa-bug"></i><span>Push Debug</span></a>
         <a href="#" class="nav-item" id="notifToggle" onclick="toggleNotifications();return false" style="display:none">
           <i class="fas fa-bell" id="notifIcon"></i>
           <span id="notifText">Enable Notifications</span>
