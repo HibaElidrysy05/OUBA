@@ -115,31 +115,22 @@ router.post('/forgot-password', async (req, res) => {
     const resetLink = `${baseUrl}/reset-password/${token}`;
 
     const smtpConfigured = process.env.SMTP_USER && process.env.SMTP_PASS;
-    let emailSent = false;
-
     if (smtpConfigured) {
-      try {
-        await transporter.sendMail({
-          from: process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@ouba.app',
-          to: user.email,
-          subject: 'Ouba - Password Reset',
-          html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #FFD6E0;border-radius:16px;background:#FFF5F7">
-            <h1 style="color:#E88FAC;font-size:22px;margin-bottom:16px">🌸 Password Reset</h1>
-            <p style="color:#4A3740;line-height:1.6">Hi <strong>${user.displayName || user.username}</strong>,</p>
-            <p style="color:#4A3740;line-height:1.6">Click the button below to reset your password. This link expires in 1 hour.</p>
-            <a href="${resetLink}" style="display:inline-block;padding:12px 28px;background:#FFB6C1;color:#fff;text-decoration:none;border-radius:30px;font-weight:700;margin:16px 0">Reset Password</a>
-            <p style="color:#A88A9A;font-size:13px">If you didn't request this, ignore this email.</p>
-          </div>`
-        });
-        emailSent = true;
-      } catch (emailErr) {
-        console.error('Email send error:', emailErr);
-      }
+      transporter.sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@ouba.app',
+        to: user.email,
+        subject: 'Ouba - Password Reset',
+        html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #FFD6E0;border-radius:16px;background:#FFF5F7">
+          <h1 style="color:#E88FAC;font-size:22px;margin-bottom:16px">🌸 Password Reset</h1>
+          <p style="color:#4A3740;line-height:1.6">Hi <strong>${user.displayName || user.username}</strong>,</p>
+          <p style="color:#4A3740;line-height:1.6">Click the button below to reset your password. This link expires in 1 hour.</p>
+          <a href="${resetLink}" style="display:inline-block;padding:12px 28px;background:#FFB6C1;color:#fff;text-decoration:none;border-radius:30px;font-weight:700;margin:16px 0">Reset Password</a>
+          <p style="color:#A88A9A;font-size:13px">If you didn't request this, ignore this email.</p>
+        </div>`
+      }).catch(err => console.error('Email send error:', err));
     }
 
-    const successMsg = emailSent
-      ? 'If that email is registered, you will receive a reset link shortly.'
-      : 'Click here to reset your password: <a href="' + resetLink + '" style="color:var(--pink-dark);font-weight:700">Reset Password</a>';
+    const successMsg = 'Reset link sent! Check your email. Or click here: <a href="' + resetLink + '" style="color:var(--pink-dark);font-weight:700">Reset Password</a>';
 
     res.render('forgot-password', { title: 'Forgot Password - Ouba', error: null, success: successMsg });
   } catch (error) {

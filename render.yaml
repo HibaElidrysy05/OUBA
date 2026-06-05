@@ -25,5 +25,7 @@ services:
         sync: false
       - key: SMTP_PASS
         sync: false
+      - key: SMTP_FROM
+        sync: false
       - key: BASE_URL
         sync: false
