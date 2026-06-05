@@ -43,7 +43,8 @@
         <div class="chat-header-info">
           <h3><%= friend.displayName || friend.username %></h3>
           <span class="chat-status" id="chatStatus">
-            <span class="status-dot offline"></span> Offline
+            <span class="status-dot offline" data-user-id="<%= friend.id %>"></span>
+            <span class="status-text">Offline</span>
           </span>
         </div>
       </div>
