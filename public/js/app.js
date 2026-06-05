@@ -90,10 +90,25 @@
           : 'Ouba - ' + senderName;
         new Notification(notifTitle, {
           body: notifBody,
-          icon: data.sender && data.sender.profilePic ? data.sender.profilePic : '/favicon.ico'
+          icon: data.sender && data.sender.profilePic ? data.sender.profilePic : '/img/icon-192.png'
         });
       }
     });
+
+    var installPrompt = null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      installPrompt = e;
+    });
+
+    window.addEventListener('appinstalled', function () {
+      installPrompt = null;
+    });
+
+    window.showInstallPrompt = function () {
+      if (!installPrompt) return;
+      installPrompt.prompt();
+    };
   } catch (e) {
     console.error('Socket init error:', e);
   }
