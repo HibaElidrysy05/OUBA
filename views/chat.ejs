@@ -5,7 +5,29 @@
       <h2><i class="fas fa-comments"></i> Chats</h2>
     </div>
     <div class="chat-sidebar-list">
-      <% if (friends && friends.length > 0) { %>
+      <% if (conversations && conversations.length > 0) { %>
+        <% conversations.forEach(function(c) { %>
+          <a href="/chat/<%= c.user.id %>" class="chat-sidebar-item <%= c.user.id === friend.id ? 'active' : '' %>">
+            <div class="chat-sidebar-avatar">
+              <% if (c.user.profilePic) { %>
+                <img src="<%= c.user.profilePic %>" alt="">
+              <% } else { %>
+                <div class="avatar-placeholder"><%= (c.user.displayName || c.user.username || '?')[0].toUpperCase() %></div>
+              <% } %>
+              <span class="status-dot offline" data-user-id="<%= c.user.id %>"></span>
+            </div>
+            <div class="chat-sidebar-info">
+              <span class="chat-sidebar-name"><%= c.user.displayName || c.user.username %></span>
+              <span class="chat-sidebar-last-msg">
+                <%= c.lastMessage ? (c.lastMessage.fileUrl ? '📎 File' : (c.lastMessage.content || '').substring(0, 30)) : 'Start chatting' %>
+              </span>
+              <% if (c.unreadCount > 0) { %>
+                <span class="chat-sidebar-badge"><%= c.unreadCount > 99 ? '99+' : c.unreadCount %></span>
+              <% } %>
+            </div>
+          </a>
+        <% }); %>
+      <% } else if (friends && friends.length > 0) { %>
         <% friends.forEach(function(f) { %>
           <a href="/chat/<%= f.id %>" class="chat-sidebar-item <%= f.id === friend.id ? 'active' : '' %>">
             <div class="chat-sidebar-avatar">

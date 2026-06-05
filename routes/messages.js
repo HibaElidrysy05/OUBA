@@ -50,12 +50,46 @@ router.get('/chat/:friendId', async (req, res) => {
       ]
     });
 
+    const allConvMessages = await Message.findAll({
+      where: {
+        [Op.or]: [
+          { senderId: currentUserId },
+          { receiverId: currentUserId }
+        ]
+      },
+      order: [['createdAt', 'DESC']]
+    });
+
+    const convMap = {};
+    for (const msg of allConvMessages) {
+      const partnerId = msg.senderId === currentUserId ? msg.receiverId : msg.senderId;
+      if (!partnerId) continue;
+      if (!convMap[partnerId]) {
+        convMap[partnerId] = { lastMessage: msg, unreadCount: 0 };
+      }
+      if (msg.receiverId === currentUserId && !msg.read) {
+        convMap[partnerId].unreadCount += 1;
+      }
+    }
+
+    const conversations = (userWithFriends.Friends || []).map(f => ({
+      user: f,
+      lastMessage: convMap[f.id] ? convMap[f.id].lastMessage : null,
+      unreadCount: convMap[f.id] ? convMap[f.id].unreadCount : 0
+    }));
+    conversations.sort((a, b) => {
+      if (!a.lastMessage) return 1;
+      if (!b.lastMessage) return -1;
+      return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
+    });
+
     res.render('chat', {
       title: `Chat with ${friend.displayName || friend.username} - Ouba`,
       user: currentUser,
       friend,
       messages,
-      friends: userWithFriends.Friends || []
+      friends: userWithFriends.Friends || [],
+      conversations
     });
   } catch (error) {
     console.error('Chat error:', error);
