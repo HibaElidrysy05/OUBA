@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const { Op } = require('sequelize');
 const User = require('../models/User');
 const { PasswordResetToken } = require('../models');
-const transporter = require('../config/email');
+const sendEmail = require('../config/email');
 
 router.get('/login', (req, res) => {
   if (req.session.userId) return res.redirect('/');
@@ -114,10 +114,9 @@ router.post('/forgot-password', async (req, res) => {
     const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
     const resetLink = `${baseUrl}/reset-password/${token}`;
 
-    const smtpConfigured = process.env.SMTP_USER && process.env.SMTP_PASS;
+    const smtpConfigured = process.env.SMTP_PASS;
     if (smtpConfigured) {
-      transporter.sendMail({
-        from: process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@ouba.app',
+      sendEmail({
         to: user.email,
         subject: 'Ouba - Password Reset',
         html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #FFD6E0;border-radius:16px;background:#FFF5F7">
@@ -130,7 +129,7 @@ router.post('/forgot-password', async (req, res) => {
       }).catch(err => console.error('Email send error:', err));
     }
 
-    const successMsg = 'Reset link sent! Check your email. Or click here: <a href="' + resetLink + '" style="color:var(--pink-dark);font-weight:700">Reset Password</a>';
+    const successMsg = 'If that email is registered, a reset link has been sent to your email.';
 
     res.render('forgot-password', { title: 'Forgot Password - Ouba', error: null, success: successMsg });
   } catch (error) {

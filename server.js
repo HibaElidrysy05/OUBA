@@ -156,5 +156,4 @@ server.listen(PORT, async () => {
     }
   }
   console.log(`Ouba server running on port ${PORT}`);
-  console.log('SMTP configured:', process.env.SMTP_USER && process.env.SMTP_PASS ? 'yes' : 'no');
 });
