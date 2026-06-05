@@ -11,14 +11,19 @@ module.exports = (io) => {
     async function sendPush(userId, title, body, url) {
       try {
         const subs = await PushSubscription.findAll({ where: { userId } });
+        if (subs.length === 0) { console.log('No push subs for user', userId); return; }
+        console.log('Sending push to user', userId, 'subs:', subs.length);
         for (const sub of subs) {
           try {
             await webpush.sendNotification({
               endpoint: sub.endpoint,
               keys: { auth: sub.auth, p256dh: sub.p256dh }
             }, JSON.stringify({ title, body, url }));
+            console.log('Push sent to', sub.endpoint.substring(0, 50));
           } catch (err) {
+            console.error('Push send fail:', err.statusCode, err.message);
             if (err.statusCode === 410 || err.statusCode === 404) {
+              console.log('Removing stale subscription');
               await sub.destroy();
             }
           }
@@ -105,10 +110,14 @@ module.exports = (io) => {
           chatUrl: '/chat/' + data.senderId
         });
 
-        const receiverSockets = await io.in('user:' + receiverId).fetchSockets();
-        if (receiverSockets.length === 0) {
-          const senderName = populatedMessage.sender.displayName || populatedMessage.sender.username;
-          sendPush(receiverId, 'Ouba - ' + senderName, content || (fileUrl ? 'Sent a file' : ''), '/chat/' + data.senderId);
+        try {
+          const receiverSockets = await io.in('user:' + receiverId).fetchSockets();
+          if (receiverSockets.length === 0) {
+            const senderName = populatedMessage.sender.displayName || populatedMessage.sender.username;
+            sendPush(receiverId, 'Ouba - ' + senderName, content || (fileUrl ? 'Sent a file' : ''), '/chat/' + data.senderId);
+          }
+        } catch (err) {
+          console.error('Push check error:', err);
         }
 
         if (callback) callback({ success: true, message: populatedMessage });
@@ -161,7 +170,7 @@ module.exports = (io) => {
 
         const group = await Group.findByPk(groupId, { attributes: ['id', 'name'] });
         const allMembers = await GroupMember.findAll({ where: { groupId } });
-        allMembers.forEach(async m => {
+        for (const m of allMembers) {
           if (m.userId !== data.senderId) {
             io.to('user:' + m.userId).emit('new-message-alert', {
               type: 'group',
@@ -171,17 +180,21 @@ module.exports = (io) => {
               chatUrl: '/group/' + groupId,
               mentioned: mentionIds.includes(m.userId)
             });
-            const memberSockets = await io.in('user:' + m.userId).fetchSockets();
-            if (memberSockets.length === 0) {
-              const senderName = populatedMessage.sender.displayName || populatedMessage.sender.username;
-              const groupName = group ? group.name : 'Group';
-              const pushBody = mentionIds.includes(m.userId)
-                ? senderName + ' mentioned you in ' + groupName
-                : (content || (fileUrl ? 'Sent a file' : ''));
-              sendPush(m.userId, 'Ouba - ' + groupName, pushBody, '/group/' + groupId);
+            try {
+              const memberSockets = await io.in('user:' + m.userId).fetchSockets();
+              if (memberSockets.length === 0) {
+                const senderName = populatedMessage.sender.displayName || populatedMessage.sender.username;
+                const gName = group ? group.name : 'Group';
+                const pushBody = mentionIds.includes(m.userId)
+                  ? senderName + ' mentioned you in ' + gName
+                  : (content || (fileUrl ? 'Sent a file' : ''));
+                sendPush(m.userId, 'Ouba - ' + gName, pushBody, '/group/' + groupId);
+              }
+            } catch (err) {
+              console.error('Group push check error:', err);
             }
           }
-        });
+        }
 
         if (callback) callback({ success: true, message: populatedMessage });
       } catch (error) {

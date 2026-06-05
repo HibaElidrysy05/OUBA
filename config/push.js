@@ -1,12 +1,41 @@
 const webpush = require('web-push');
+const fs = require('fs');
+const path = require('path');
 
-const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || 'BHOd4pOZuHeJWqoPdUHjAFx9YS05SJSBj5M6-kwX_hAM2IKSs9dXAA68X6epBz2tjyMkDXfCMJrQ5MRUNfpnLxE';
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || 'zWBqRBj8Un0UQFTrK5-6v_8mBXJGs4ARLv_viMvtbQ4';
+const keysFile = path.join(__dirname, '..', 'vapid-keys.json');
+
+function loadOrGenerateKeys() {
+  if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    return {
+      publicKey: process.env.VAPID_PUBLIC_KEY,
+      privateKey: process.env.VAPID_PRIVATE_KEY
+    };
+  }
+  try {
+    if (fs.existsSync(keysFile)) {
+      return JSON.parse(fs.readFileSync(keysFile, 'utf8'));
+    }
+  } catch (e) {
+    // ignore
+  }
+  const keys = webpush.generateVAPIDKeys();
+  try {
+    fs.writeFileSync(keysFile, JSON.stringify(keys, null, 2));
+    console.log('Generated new VAPID keys');
+  } catch (e) {
+    console.error('Could not save VAPID keys:', e.message);
+  }
+  return keys;
+}
+
+const keys = loadOrGenerateKeys();
 
 webpush.setVapidDetails(
   'mailto:contact@ouba.app',
-  vapidPublicKey,
-  vapidPrivateKey
+  keys.publicKey,
+  keys.privateKey
 );
 
-module.exports = { webpush, vapidPublicKey };
+console.log('VAPID public key:', keys.publicKey);
+
+module.exports = { webpush, vapidPublicKey: keys.publicKey };

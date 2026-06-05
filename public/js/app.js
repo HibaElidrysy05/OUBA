@@ -99,6 +99,11 @@
     async function subscribePush(userId) {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
       if (localStorage.getItem('push-subscribed') === 'true') return;
+      if (!('Notification' in window) || Notification.permission === 'denied') return;
+      if (Notification.permission === 'default') {
+        var perm = await Notification.requestPermission();
+        if (perm !== 'granted') return;
+      }
       try {
         var reg = await navigator.serviceWorker.ready;
         var sub = await reg.pushManager.getSubscription();
@@ -108,6 +113,7 @@
         }
         var resp = await fetch('/vapid-public-key');
         var data = await resp.json();
+        if (!data.publicKey) { console.warn('No VAPID key'); return; }
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(data.publicKey)
@@ -118,6 +124,7 @@
           body: JSON.stringify({ endpoint: sub.endpoint, keys: sub.toJSON().keys })
         });
         localStorage.setItem('push-subscribed', 'true');
+        console.log('Push subscribed successfully');
       } catch (e) {
         console.warn('Push subscription failed:', e);
       }
