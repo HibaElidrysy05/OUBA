@@ -4,6 +4,10 @@ const Message = require('./Message');
 const FriendRequest = require('./FriendRequest');
 const Group = require('./Group');
 const GroupMember = require('./GroupMember');
+const PasswordResetToken = require('./PasswordResetToken');
+
+User.hasMany(PasswordResetToken, { as: 'ResetTokens', foreignKey: 'userId' });
+PasswordResetToken.belongsTo(User, { foreignKey: 'userId' });
 
 User.hasMany(Message, { as: 'SentMessages', foreignKey: 'senderId' });
 User.hasMany(Message, { as: 'ReceivedMessages', foreignKey: 'receiverId' });
@@ -59,4 +63,4 @@ const syncDB = async () => {
   }
 };
 
-module.exports = { User, Message, FriendRequest, Group, GroupMember, syncDB };
+module.exports = { User, Message, FriendRequest, Group, GroupMember, PasswordResetToken, syncDB };
