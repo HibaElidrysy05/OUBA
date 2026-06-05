@@ -57,6 +57,7 @@
       if (userId) {
         window.appSocket.emit('user-online', userId);
         subscribePush(userId);
+        setTimeout(function() { if (window.updateNotifButton) updateNotifButton(); }, 2000);
       }
     });
 

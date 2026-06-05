@@ -1,8 +1,9 @@
-const CACHE = 'ouba-v1';
+const CACHE = 'ouba-v2';
 const STATIC_FILES = [
   '/css/style.css',
   '/js/app.js',
-  '/manifest.json'
+  '/manifest.json',
+  '/img/icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
