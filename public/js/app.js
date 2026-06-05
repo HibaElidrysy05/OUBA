@@ -99,15 +99,22 @@
     window.addEventListener('beforeinstallprompt', function (e) {
       e.preventDefault();
       installPrompt = e;
+      var btn = document.getElementById('installBtn');
+      if (btn) btn.style.display = '';
     });
 
     window.addEventListener('appinstalled', function () {
       installPrompt = null;
+      var btn = document.getElementById('installBtn');
+      if (btn) btn.style.display = 'none';
     });
 
-    window.showInstallPrompt = function () {
-      if (!installPrompt) return;
-      installPrompt.prompt();
+    window.installApp = function () {
+      if (installPrompt) {
+        installPrompt.prompt();
+        return;
+      }
+      showInstallInstructions();
     };
   } catch (e) {
     console.error('Socket init error:', e);

@@ -20,10 +20,23 @@
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     });
   }
-  window.addEventListener('beforeinstallprompt', function() {
-    var btn = document.getElementById('installBtn');
-    if (btn) btn.style.display = '';
-  });
+  function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  }
+  function isStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  }
+  function showInstallInstructions() {
+    if (isStandalone()) return;
+    if (isIOS()) {
+      alert('Tap Share icon (bottom bar) \u2192 scroll down \u2192 tap "Add to Home Screen"');
+    } else {
+      alert('Open browser menu \u2192 tap "Add to Home Screen" or "Install App"');
+    }
+  }
+  if (!isStandalone()) {
+    document.getElementById('installBtn').style.display = '';
+  }
   </script>
 </head>
 <body data-user-id="<%= typeof currentUser !== 'undefined' && currentUser ? currentUser.id : '' %>">
@@ -75,7 +88,7 @@
           <span>Admin</span>
         </a>
         <% } %>
-        <a href="#" class="nav-item" id="installBtn" style="display:none" onclick="window.showInstallPrompt && window.showInstallPrompt();return false">
+        <a href="#" class="nav-item" id="installBtn" onclick="window.installApp ? window.installApp() : showInstallInstructions();return false">
           <i class="fas fa-download"></i>
           <span>Install App</span>
         </a>
