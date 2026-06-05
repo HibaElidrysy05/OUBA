@@ -60,6 +60,14 @@ PushSubscription.belongsTo(User, { foreignKey: 'userId' });
 
 const syncDB = async () => {
   try {
+    const queryInterface = sequelize.getQueryInterface();
+    try {
+      const desc = await queryInterface.describeTable('PushSubscriptions');
+      if (!desc.endpoint || !desc.auth || !desc.p256dh) {
+        await queryInterface.dropTable('PushSubscriptions');
+        console.log('Dropped old PushSubscriptions table');
+      }
+    } catch (_) {}
     await sequelize.sync({ alter: true });
     console.log('Database synchronized');
   } catch (error) {

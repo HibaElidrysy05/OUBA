@@ -13,15 +13,18 @@ const PushSubscription = sequelize.define('PushSubscription', {
   },
   endpoint: {
     type: DataTypes.TEXT,
-    allowNull: false
+    allowNull: false,
+    defaultValue: ''
   },
   auth: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
+    defaultValue: ''
   },
   p256dh: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
+    defaultValue: ''
   }
 }, {
   timestamps: true
