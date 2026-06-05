@@ -2,6 +2,7 @@
 <div class="push-debug" style="max-width:600px;margin:40px auto;padding:0 20px">
   <h2>Push Notification Debug</h2>
   <p><strong>VAPID Public Key:</strong> <code style="word-break:break-all;font-size:11px"><%= vapidKey %></code></p>
+  <p><strong>Mode:</strong> <span id="displayMode">checking...</span></p>
   <p><strong>Notification Permission:</strong> <span id="notifPerm">checking...</span></p>
   <p><strong>Service Worker:</strong> <span id="swStatus">checking...</span></p>
   <p><strong>Push Subscriptions on server:</strong> <%= subs.length %></p>
@@ -35,22 +36,34 @@ async function testPush() {
 async function checkBrowser() {
   var pre = document.getElementById('result');
   var lines = [];
-  lines.push('Notification: ' + (typeof Notification));
-  if ('Notification' in window) {
-    lines.push('Permission: ' + Notification.permission);
-  }
+  lines.push('=== Environment ===');
+  lines.push('User agent: ' + navigator.userAgent.substring(0, 80));
+  lines.push('Standalone: ' + (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone));
+  lines.push('Protocol: ' + location.protocol);
+  lines.push('=== Notification API ===');
+  lines.push('window.Notification: ' + (typeof Notification));
+  lines.push('Notification in window: ' + ('Notification' in window));
+  try { lines.push('Permission: ' + Notification.permission); } catch(e) { lines.push('Permission error: ' + e.message); }
+  lines.push('=== Push API ===');
+  lines.push('PushManager in window: ' + ('PushManager' in window));
+  lines.push('serviceWorker in navigator: ' + ('serviceWorker' in navigator));
   if ('serviceWorker' in navigator) {
     try {
       var reg = await navigator.serviceWorker.ready;
-      lines.push('SW state: ' + (reg.active ? 'active' : 'inactive'));
-      var sub = await reg.pushManager.getSubscription();
-      lines.push('Push sub: ' + (sub ? 'Yes (' + sub.endpoint.substring(0,50) + '...)' : 'None'));
+      lines.push('SW state: ' + (reg.active ? 'active' : 'waiting/installing'));
+      lines.push('SW script: ' + (reg.active ? reg.active.scriptURL : 'none'));
+      lines.push('PushManager on reg: ' + (typeof reg.pushManager));
+      if (reg.pushManager) {
+        try {
+          var sub = await reg.pushManager.getSubscription();
+          lines.push('Subscription: ' + (sub ? 'Yes (' + sub.endpoint.substring(0,50) + '...)' : 'None'));
+        } catch(e2) { lines.push('Subscription error: ' + e2.message); }
+      }
     } catch(e) { lines.push('SW error: ' + e.message); }
-  } else {
-    lines.push('serviceWorker: NOT supported');
   }
   pre.textContent = lines.join('\n');
 }
+document.getElementById('displayMode').textContent = (window.matchMedia('(display-mode: standalone)').matches ? 'Standalone PWA (Home Screen)' : 'Browser (Safari)') + (window.navigator.standalone ? ' [navigator.standalone]' : '');
 document.getElementById('notifPerm').textContent = ('Notification' in window) ? Notification.permission : 'N/A';
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.ready.then(function(reg) {
