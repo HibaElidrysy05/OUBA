@@ -1,14 +1,14 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
   port: parseInt(process.env.SMTP_PORT || '587'),
   secure: process.env.SMTP_PORT === '465',
   family: 4,
   connectionTimeout: 15000,
   socketTimeout: 15000,
   auth: {
-    user: process.env.SMTP_USER,
+    user: process.env.SMTP_USER || 'apikey',
     pass: process.env.SMTP_PASS
   }
 });
