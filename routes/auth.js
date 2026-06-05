@@ -115,6 +115,7 @@ router.post('/forgot-password', async (req, res) => {
     const resetLink = `${baseUrl}/reset-password/${token}`;
 
     const smtpConfigured = process.env.SMTP_USER && process.env.SMTP_PASS;
+    let emailSent = false;
 
     if (smtpConfigured) {
       try {
@@ -130,14 +131,15 @@ router.post('/forgot-password', async (req, res) => {
             <p style="color:#A88A9A;font-size:13px">If you didn't request this, ignore this email.</p>
           </div>`
         });
+        emailSent = true;
       } catch (emailErr) {
         console.error('Email send error:', emailErr);
       }
     }
 
-    const successMsg = smtpConfigured
+    const successMsg = emailSent
       ? 'If that email is registered, you will receive a reset link shortly.'
-      : 'No email configured. Use this link to reset your password: <a href="' + resetLink + '" style="color:var(--pink-dark);font-weight:700">Reset Password</a>';
+      : 'Click here to reset your password: <a href="' + resetLink + '" style="color:var(--pink-dark);font-weight:700">Reset Password</a>';
 
     res.render('forgot-password', { title: 'Forgot Password - Ouba', error: null, success: successMsg });
   } catch (error) {
