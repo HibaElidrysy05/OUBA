@@ -73,17 +73,23 @@
 
     window.appSocket.on('new-message-alert', function (data) {
       var senderName = data.sender ? (data.sender.displayName || data.sender.username) : 'Someone';
-      var prefix = data.type === 'group' ? '[' + data.groupName + '] ' : '';
-      var msg = prefix + senderName + ': ' + data.content;
-
-      showGlobalToast(msg, 'info', data.chatUrl);
+      if (data.mentioned) {
+        var mentionMsg = senderName + ' mentioned you in ' + data.groupName;
+        showGlobalToast(mentionMsg, 'info', data.chatUrl);
+      } else {
+        var prefix = data.type === 'group' ? '[' + data.groupName + '] ' : '';
+        showGlobalToast(prefix + senderName + ': ' + data.content, 'info', data.chatUrl);
+      }
 
       if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+        var notifBody = data.mentioned
+          ? senderName + ' mentioned you in ' + data.groupName
+          : data.content;
         var notifTitle = data.type === 'group'
           ? 'Ouba - ' + data.groupName
           : 'Ouba - ' + senderName;
         new Notification(notifTitle, {
-          body: data.content,
+          body: notifBody,
           icon: data.sender && data.sender.profilePic ? data.sender.profilePic : '/favicon.ico'
         });
       }

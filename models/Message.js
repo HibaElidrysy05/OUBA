@@ -42,6 +42,10 @@ const Message = sequelize.define('Message', {
   read: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  mentions: {
+    type: DataTypes.JSONB,
+    defaultValue: []
   }
 }, {
   timestamps: true

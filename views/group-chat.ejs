@@ -94,7 +94,7 @@
                   <% } %>
                 </div>
               <% } %>
-              <% if (msg.content) { %><p><%= msg.content %></p><% } %>
+              <% if (msg.content) { %><p><%- msg.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/@(\w+)/g, '<span class="mention" onclick="event.stopPropagation()">@$1</span>') %></p><% } %>
               <span class="message-time"><%= new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></span>
               <button class="btn-reply" onclick="setReply('<%= msg.id %>', '<%= (msg.sender.displayName || msg.sender.username).replace(/'/g, "\\'") %>', '<%= (msg.content || '').replace(/'/g, "\\'").substring(0, 50).replace(/\\n/g, ' ') %>')" title="Reply"><i class="fas fa-reply"></i></button>
               <% if (isMine) { %>
@@ -130,13 +130,14 @@
       <% } %>
     </div>
 
-    <div class="chat-input">
+    <div class="chat-input" style="position:relative">
+      <div class="mention-dropdown" id="mentionDropdown"></div>
       <div class="chat-input-actions">
         <button type="button" class="btn-input" id="fileBtn" title="Attach file"><i class="fas fa-paperclip"></i></button>
         <input type="file" id="fileInput" accept="image/*,audio/*,video/*,application/*,text/*" style="display:none">
       </div>
       <div class="chat-input-field">
-        <textarea id="messageInput" rows="1" placeholder="Type a message..." autocomplete="off"></textarea>
+        <textarea id="messageInput" rows="1" placeholder="Type a message... (@ to mention)" autocomplete="off"></textarea>
       </div>
       <button type="button" class="btn-send" id="sendBtn" title="Send message" disabled><i class="fas fa-paper-plane"></i></button>
     </div>
@@ -232,6 +233,7 @@
 const socket = window.appSocket || io({ transports: ['websocket', 'polling'] });
 const userId = '<%= user.id %>';
 const groupId = '<%= group.id %>';
+const groupMembers = <%- JSON.stringify(members.map(m => ({ id: m.user.id, username: m.user.username, displayName: m.user.displayName, profilePic: m.user.profilePic }))) %>;
 let selectedFile = null;
 let replyToId = null;
 
@@ -259,6 +261,9 @@ const previewFileName = document.getElementById('previewFileName');
 const typingIndicator = document.getElementById('typingIndicator');
 
 let typingTimeout;
+let mentionStartPos = -1;
+let mentionQuery = '';
+let mentionActive = false;
 
 function escapeHtml(text) {
   if (!text) return '';
@@ -320,7 +325,7 @@ socket.on('new-group-message', function(msg) {
     }
     content += '</div>';
   }
-  if (msg.content) content += '<p>' + escapeHtml(msg.content) + '</p>';
+  if (msg.content) content += '<p>' + escapeHtml(msg.content).replace(/@(\w+)/g, '<span class="mention" onclick="event.stopPropagation()">@$1</span>') + '</p>';
   const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   content += '<span class="message-time">' + escapeHtml(time) + '</span>';
   const senderName = escapeHtml(msg.sender.displayName || msg.sender.username).replace(/'/g, "\\'");
@@ -419,10 +424,71 @@ function clearReply() {
   replyPreview.style.display = 'none';
 }
 
+function showMentionDropdown(query) {
+  var dropdown = document.getElementById('mentionDropdown');
+  var filtered = groupMembers.filter(function(m) {
+    return m.username.toLowerCase().indexOf(query.toLowerCase()) !== -1 ||
+           (m.displayName && m.displayName.toLowerCase().indexOf(query.toLowerCase()) !== -1);
+  });
+  if (filtered.length === 0) {
+    dropdown.style.display = 'none';
+    return;
+  }
+  dropdown.innerHTML = filtered.map(function(m) {
+    var avatar = m.profilePic
+      ? '<img src="' + escapeHtml(m.profilePic) + '" alt="">'
+      : '<div class="avatar-placeholder">' + escapeHtml((m.displayName || m.username || '?')[0].toUpperCase()) + '</div>';
+    return '<div class="mention-item" data-username="' + escapeHtml(m.username) + '">' + avatar + '<div><div class="mention-name">' + escapeHtml(m.displayName || m.username) + '</div><div class="mention-username">@' + escapeHtml(m.username) + '</div></div></div>';
+  }).join('');
+  dropdown.style.display = 'block';
+  mentionActive = true;
+}
+
+function hideMentionDropdown() {
+  document.getElementById('mentionDropdown').style.display = 'none';
+  mentionStartPos = -1;
+  mentionQuery = '';
+  mentionActive = false;
+}
+
+function selectMention(username) {
+  if (mentionStartPos === -1) return;
+  var text = messageInput.value;
+  var before = text.substring(0, mentionStartPos);
+  var after = text.substring(messageInput.selectionStart);
+  messageInput.value = before + '@' + username + ' ' + after;
+  messageInput.selectionStart = messageInput.selectionEnd = before.length + username.length + 2;
+  messageInput.focus();
+  messageInput.dispatchEvent(new Event('input'));
+  hideMentionDropdown();
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.mention-dropdown') && !e.target.closest('#messageInput')) {
+    hideMentionDropdown();
+  }
+});
+
 messageInput.addEventListener('input', function() {
   this.style.height = 'auto';
   this.style.height = Math.min(this.scrollHeight, 150) + 'px';
   sendBtn.disabled = !this.value.trim() && !selectedFile;
+
+  var pos = this.selectionStart;
+  var text = this.value;
+  var atIdx = text.lastIndexOf('@', pos - 1);
+  if (atIdx !== -1 && (atIdx === 0 || text[atIdx - 1] === ' ' || text[atIdx - 1] === '\n')) {
+    var query = text.substring(atIdx + 1, pos);
+    if (/^\w*$/.test(query)) {
+      mentionStartPos = atIdx;
+      mentionQuery = query;
+      showMentionDropdown(query);
+    } else {
+      hideMentionDropdown();
+    }
+  } else {
+    hideMentionDropdown();
+  }
 
   socket.emit('group-typing', { userId, groupId, isTyping: true });
   clearTimeout(typingTimeout);
@@ -433,10 +499,45 @@ messageInput.addEventListener('input', function() {
 
 sendBtn.addEventListener('click', sendMessage);
 messageInput.addEventListener('keydown', function(e) {
+  var dropdown = document.getElementById('mentionDropdown');
+  if (dropdown.style.display === 'block') {
+    var items = dropdown.querySelectorAll('.mention-item');
+    var active = dropdown.querySelector('.mention-item.active');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      var next = active ? active.nextElementSibling : items[0];
+      if (active) active.classList.remove('active');
+      if (next) next.classList.add('active');
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      var prev = active ? active.previousElementSibling : items[items.length - 1];
+      if (active) active.classList.remove('active');
+      if (prev) prev.classList.add('active');
+      return;
+    }
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      if (active) {
+        e.preventDefault();
+        selectMention(active.dataset.username);
+        return;
+      }
+    }
+    if (e.key === 'Escape') {
+      hideMentionDropdown();
+      return;
+    }
+  }
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     sendMessage();
   }
+});
+
+document.getElementById('mentionDropdown').addEventListener('click', function(e) {
+  var item = e.target.closest('.mention-item');
+  if (item) selectMention(item.dataset.username);
 });
 
 fileBtn.addEventListener('click', () => fileInput.click());

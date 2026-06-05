@@ -95,15 +95,36 @@ module.exports = (io) => {
       try {
         const { groupId, content, fileUrl, fileType, fileName, fileSize, replyToId } = data;
 
+        const contentText = content || '';
+        const mentionRegex = /@(\w+)/g;
+        const mentionedUsernames = [];
+        let match;
+        while ((match = mentionRegex.exec(contentText)) !== null) {
+          mentionedUsernames.push(match[1].toLowerCase());
+        }
+
+        let mentionIds = [];
+        if (mentionedUsernames.length > 0) {
+          const members = await GroupMember.findAll({
+            where: { groupId },
+            include: [{ association: 'user', attributes: ['id', 'username'] }]
+          });
+          const mentionedUsers = members.filter(m =>
+            m.user && mentionedUsernames.includes(m.user.username.toLowerCase())
+          );
+          mentionIds = mentionedUsers.map(m => m.user.id);
+        }
+
         const message = await Message.create({
           senderId: data.senderId,
           groupId,
-          content: content || '',
+          content: contentText,
           fileUrl: fileUrl || null,
           fileType: fileType || null,
           fileName: fileName || null,
           fileSize: fileSize || null,
-          replyTo: replyToId || null
+          replyTo: replyToId || null,
+          mentions: mentionIds
         });
 
         const populatedMessage = await populateMessage(message);
@@ -112,15 +133,16 @@ module.exports = (io) => {
         io.to(room).emit('new-group-message', populatedMessage);
 
         const group = await Group.findByPk(groupId, { attributes: ['id', 'name'] });
-        const members = await GroupMember.findAll({ where: { groupId } });
-        members.forEach(m => {
+        const allMembers = await GroupMember.findAll({ where: { groupId } });
+        allMembers.forEach(m => {
           if (m.userId !== data.senderId) {
             io.to('user:' + m.userId).emit('new-message-alert', {
               type: 'group',
               groupName: group ? group.name : 'Group',
               sender: populatedMessage.sender,
               content: content || (fileUrl ? 'Sent a file' : ''),
-              chatUrl: '/group/' + groupId
+              chatUrl: '/group/' + groupId,
+              mentioned: mentionIds.includes(m.userId)
             });
           }
         });
