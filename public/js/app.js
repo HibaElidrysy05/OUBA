@@ -98,7 +98,6 @@
 
     async function subscribePush(userId) {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-      if (localStorage.getItem('push-subscribed') === 'true') return;
       if (!('Notification' in window) || Notification.permission === 'denied') return;
       if (Notification.permission === 'default') {
         var perm = await Notification.requestPermission();
@@ -106,15 +105,26 @@
       }
       try {
         var reg = await navigator.serviceWorker.ready;
-        var sub = await reg.pushManager.getSubscription();
-        if (sub) {
-          localStorage.setItem('push-subscribed', 'true');
-          return;
-        }
         var resp = await fetch('/vapid-public-key');
         var data = await resp.json();
         if (!data.publicKey) { console.warn('No VAPID key'); return; }
-        sub = await reg.pushManager.subscribe({
+        var savedKey = localStorage.getItem('vapid-public-key');
+        if (savedKey !== data.publicKey) {
+          var oldSub = await reg.pushManager.getSubscription();
+          if (oldSub) {
+            try {
+              await fetch('/push-unsubscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ endpoint: oldSub.endpoint })
+              });
+            } catch (_) {}
+            await oldSub.unsubscribe();
+          }
+          localStorage.removeItem('push-subscribed');
+        }
+        if (localStorage.getItem('push-subscribed') === 'true') return;
+        var sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(data.publicKey)
         });
@@ -124,6 +134,7 @@
           body: JSON.stringify({ endpoint: sub.endpoint, keys: sub.toJSON().keys })
         });
         localStorage.setItem('push-subscribed', 'true');
+        localStorage.setItem('vapid-public-key', data.publicKey);
         console.log('Push subscribed successfully');
       } catch (e) {
         console.warn('Push subscription failed:', e);

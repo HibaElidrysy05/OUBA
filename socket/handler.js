@@ -110,14 +110,9 @@ module.exports = (io) => {
           chatUrl: '/chat/' + data.senderId
         });
 
-        try {
-          const receiverSockets = await io.in('user:' + receiverId).fetchSockets();
-          if (receiverSockets.length === 0) {
-            const senderName = populatedMessage.sender.displayName || populatedMessage.sender.username;
-            sendPush(receiverId, 'Ouba - ' + senderName, content || (fileUrl ? 'Sent a file' : ''), '/chat/' + data.senderId);
-          }
-        } catch (err) {
-          console.error('Push check error:', err);
+        if (!onlineUsers.has(receiverId)) {
+          const senderName = populatedMessage.sender.displayName || populatedMessage.sender.username;
+          sendPush(receiverId, 'Ouba - ' + senderName, content || (fileUrl ? 'Sent a file' : ''), '/chat/' + data.senderId);
         }
 
         if (callback) callback({ success: true, message: populatedMessage });
@@ -180,18 +175,13 @@ module.exports = (io) => {
               chatUrl: '/group/' + groupId,
               mentioned: mentionIds.includes(m.userId)
             });
-            try {
-              const memberSockets = await io.in('user:' + m.userId).fetchSockets();
-              if (memberSockets.length === 0) {
-                const senderName = populatedMessage.sender.displayName || populatedMessage.sender.username;
-                const gName = group ? group.name : 'Group';
-                const pushBody = mentionIds.includes(m.userId)
-                  ? senderName + ' mentioned you in ' + gName
-                  : (content || (fileUrl ? 'Sent a file' : ''));
-                sendPush(m.userId, 'Ouba - ' + gName, pushBody, '/group/' + groupId);
-              }
-            } catch (err) {
-              console.error('Group push check error:', err);
+            if (!onlineUsers.has(m.userId)) {
+              const senderName = populatedMessage.sender.displayName || populatedMessage.sender.username;
+              const gName = group ? group.name : 'Group';
+              const pushBody = mentionIds.includes(m.userId)
+                ? senderName + ' mentioned you in ' + gName
+                : (content || (fileUrl ? 'Sent a file' : ''));
+              sendPush(m.userId, 'Ouba - ' + gName, pushBody, '/group/' + groupId);
             }
           }
         }
