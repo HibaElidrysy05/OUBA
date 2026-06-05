@@ -157,7 +157,7 @@
       <button type="button" class="preview-remove" onclick="clearReply()"><i class="fas fa-times"></i></button>
     </div>
     <div class="typing-indicator" id="typingIndicator" style="display:none">
-      <span></span><span></span><span></span> typing...
+      <span></span><span></span><span></span> <strong id="typingName"></strong> typing...
     </div>
   </div>
 </div>
@@ -261,6 +261,7 @@ const previewFileName = document.getElementById('previewFileName');
 const typingIndicator = document.getElementById('typingIndicator');
 
 let typingTimeout;
+const myName = '<%= (user.displayName || user.username).replace(/'/g, "\\'") %>';
 let mentionStartPos = -1;
 let mentionQuery = '';
 let mentionActive = false;
@@ -369,6 +370,7 @@ socket.on('new-group-message', function(msg) {
 
 socket.on('group-typing', function(data) {
   if (data.userId !== userId) {
+    document.getElementById('typingName').textContent = data.name || 'Someone';
     typingIndicator.style.display = data.isTyping ? 'flex' : 'none';
   }
 });
@@ -490,10 +492,10 @@ messageInput.addEventListener('input', function() {
     hideMentionDropdown();
   }
 
-  socket.emit('group-typing', { userId, groupId, isTyping: true });
+  socket.emit('group-typing', { userId, groupId, name: myName, isTyping: true });
   clearTimeout(typingTimeout);
   typingTimeout = setTimeout(() => {
-    socket.emit('group-typing', { userId, groupId, isTyping: false });
+    socket.emit('group-typing', { userId, groupId, name: myName, isTyping: false });
   }, 2000);
 });
 
@@ -609,7 +611,7 @@ function sendMessage() {
   messageInput.value = '';
   messageInput.style.height = 'auto';
   sendBtn.disabled = true;
-  socket.emit('group-typing', { userId, groupId, isTyping: false });
+  socket.emit('group-typing', { userId, groupId, name: myName, isTyping: false });
 }
 
 function openAddMember() {

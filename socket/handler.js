@@ -39,9 +39,9 @@ module.exports = (io) => {
       io.to(room).emit('user-typing', { userId, isTyping });
     });
 
-    socket.on('group-typing', ({ userId, groupId, isTyping }) => {
+    socket.on('group-typing', ({ userId, groupId, name, isTyping }) => {
       const room = 'group:' + groupId;
-      socket.to(room).emit('group-typing', { userId, isTyping });
+      socket.to(room).emit('group-typing', { userId, name, isTyping });
     });
 
     async function populateMessage(message) {
