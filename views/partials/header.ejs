@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= typeof title !== 'undefined' ? title : 'Ouba' %></title>
-  <link rel="stylesheet" href="/css/style.css?v=3">
+  <link rel="stylesheet" href="/css/style.css?v=4">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/img/icon.svg">
@@ -13,29 +13,25 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#FFB6C1">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
-  <script src="/js/app.js?v=3"></script>
+  <script src="/js/app.js?v=4"></script>
   <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     });
   }
-  function isIOS() {
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  }
   function isStandalone() {
     return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
   }
-  function showInstallInstructions() {
+  function showInstallBanner() {
     if (isStandalone()) return;
-    if (isIOS()) {
-      alert('Tap Share icon (bottom bar) \u2192 scroll down \u2192 tap "Add to Home Screen"');
-    } else {
-      alert('Open browser menu \u2192 tap "Add to Home Screen" or "Install App"');
-    }
+    if (localStorage.getItem('pwa-dismissed')) return;
+    var banner = document.getElementById('installBanner');
+    if (!banner) return;
+    setTimeout(function() { banner.style.display = 'flex'; }, 3000);
   }
-  if (!isStandalone()) {
-    document.getElementById('installBtn').style.display = '';
+  if (window.innerWidth < 769) {
+    window.addEventListener('load', showInstallBanner);
   }
   </script>
 </head>
@@ -88,10 +84,6 @@
           <span>Admin</span>
         </a>
         <% } %>
-        <a href="#" class="nav-item" id="installBtn" onclick="window.installApp ? window.installApp() : showInstallInstructions();return false">
-          <i class="fas fa-download"></i>
-          <span>Install App</span>
-        </a>
         <a href="/logout" class="nav-item mobile-logout">
           <i class="fas fa-sign-out-alt"></i>
           <span>Logout</span>

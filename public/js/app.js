@@ -99,14 +99,11 @@
     window.addEventListener('beforeinstallprompt', function (e) {
       e.preventDefault();
       installPrompt = e;
-      var btn = document.getElementById('installBtn');
-      if (btn) btn.style.display = '';
     });
 
     window.addEventListener('appinstalled', function () {
       installPrompt = null;
-      var btn = document.getElementById('installBtn');
-      if (btn) btn.style.display = 'none';
+      localStorage.setItem('pwa-dismissed', '1');
     });
 
     window.installApp = function () {
@@ -114,7 +111,11 @@
         installPrompt.prompt();
         return;
       }
-      showInstallInstructions();
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+        alert('Tap Share icon \u2192 scroll down \u2192 tap "Add to Home Screen"');
+      } else {
+        alert('Open browser menu \u2192 "Add to Home Screen" or "Install App"');
+      }
     };
   } catch (e) {
     console.error('Socket init error:', e);

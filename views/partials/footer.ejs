@@ -1,5 +1,11 @@
 </div>
   </div>
 
+  <div id="installBanner" style="display:none">
+    <span>🌸 Install Ouba for the best experience</span>
+    <button onclick="installApp();this.parentElement.style.display='none';localStorage.setItem('pwa-dismissed','1')">Install</button>
+    <button class="banner-close" onclick="this.parentElement.style.display='none';localStorage.setItem('pwa-dismissed','1')">✕</button>
+  </div>
+
 </body>
 </html>

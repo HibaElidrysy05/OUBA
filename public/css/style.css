@@ -2296,3 +2296,47 @@ html, body {
     padding: 2px 14px;
   }
 }
+
+#installBanner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--pink);
+  color: white;
+  padding: 12px 16px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 9999;
+  font-size: 14px;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+  animation: slideUp 0.3s ease;
+}
+#installBanner span { flex: 1; }
+#installBanner button {
+  background: white;
+  color: var(--pink-medium);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#installBanner .banner-close {
+  background: none;
+  color: rgba(255,255,255,0.8);
+  padding: 4px 8px;
+  font-size: 16px;
+  min-width: auto;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@media (min-width: 769px) {
+  #installBanner { display: none !important; }
+}
