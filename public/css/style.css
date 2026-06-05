@@ -329,12 +329,6 @@ html, body {
   transform: translateY(0);
 }
 
-.btn-full {
-  width: 100%;
-  padding: 14px;
-  font-size: 16px;
-}
-
 .btn-sm {
   padding: 6px 14px;
   font-size: 13px;
@@ -1032,6 +1026,37 @@ html, body {
   margin-bottom: 2px;
 }
 
+.group-message-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.group-message-avatar {
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.group-message-avatar img,
+.group-message-avatar .avatar-placeholder {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.group-message-sender {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pink-dark);
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.group-message-sender:hover {
+  text-decoration: underline;
+  color: var(--pink-darker);
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;
@@ -1090,6 +1115,8 @@ html, body {
 
 .btn-full {
   width: 100%;
+  padding: 14px;
+  font-size: 16px;
 }
 
 /* Profile Page */
@@ -1350,7 +1377,11 @@ html, body {
   display: inline-flex;
 }
 
-.avatar-wrapper .status-dot {
+.avatar-wrapper .status-dot,
+.conversation-avatar .status-dot,
+.friend-avatar .status-dot,
+.chat-sidebar-avatar .status-dot,
+.chat-header-user > :first-child .status-dot {
   position: absolute;
   bottom: 0;
   right: 0;
@@ -1397,10 +1428,6 @@ html, body {
 @keyframes messageSlide {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-.message-sent {
-  align-self: flex-end;
 }
 
 .message-received {
@@ -1490,15 +1517,21 @@ html, body {
   cursor: pointer;
   font-size: 12px;
   color: var(--pink-dark);
-  transition: var(--transition);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 0;
-  opacity: 0.4;
+  opacity: 0;
   z-index: 5;
   box-shadow: 0 1px 3px var(--shadow-light);
+  animation: btnPopIn 0.25s ease forwards;
+}
+
+.message:hover .btn-reply,
+.message.show-emoji-bar .btn-reply {
+  opacity: 0.4;
 }
 
 .btn-reply:hover {
-  opacity: 1;
+  opacity: 1 !important;
   transform: scale(1.15);
 }
 
@@ -1517,37 +1550,52 @@ html, body {
   cursor: pointer;
   font-size: 12px;
   color: #e74c3c;
-  transition: var(--transition);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 0;
-  opacity: 0.4;
+  opacity: 0;
   z-index: 5;
   box-shadow: 0 1px 3px var(--shadow-light);
+  animation: btnPopIn 0.25s ease forwards;
+  animation-delay: 0.05s;
+}
+
+.message:hover .btn-delete-msg,
+.message.show-emoji-bar .btn-delete-msg {
+  opacity: 0.4;
 }
 
 .btn-delete-msg:hover {
-  opacity: 1;
+  opacity: 1 !important;
   transform: scale(1.15);
+}
+
+@keyframes btnPopIn {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 0; transform: scale(1); }
 }
 
 @media (max-width: 600px) {
   .btn-delete-msg {
-    opacity: 0.6;
     right: 6px;
     bottom: -10px;
     width: 26px;
     height: 26px;
     font-size: 10px;
   }
-}
 
-@media (max-width: 600px) {
   .btn-reply {
-    opacity: 0.6;
     right: 6px;
     top: -10px;
     width: 26px;
     height: 26px;
     font-size: 10px;
+  }
+
+  .message:hover .btn-reply,
+  .message:hover .btn-delete-msg,
+  .message.show-emoji-bar .btn-reply,
+  .message.show-emoji-bar .btn-delete-msg {
+    opacity: 0.6;
   }
 }
 
@@ -1617,6 +1665,12 @@ html, body {
   gap: 2px;
   margin-top: 4px;
   padding-left: 4px;
+  animation: emojiBarSlide 0.2s ease;
+}
+
+@keyframes emojiBarSlide {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .message:hover .message-emoji-bar,
@@ -1942,6 +1996,10 @@ html, body {
 }
 
 /* Responsive - Phone */
+.mobile-logout {
+  display: none;
+}
+
 @media (max-width: 600px) {
   body {
     overflow-x: hidden;
@@ -1993,6 +2051,10 @@ html, body {
 
   .sidebar-footer {
     display: none;
+  }
+
+  .mobile-logout {
+    display: flex;
   }
 
   .main-content {

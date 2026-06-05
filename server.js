@@ -10,7 +10,7 @@ require('dotenv').config();
 
 const sequelize = require('./config/db');
 const { connectDB } = require('./config/db');
-const { User, syncDB } = require('./models');
+const { User, Message, syncDB } = require('./models');
 const auth = require('./middleware/auth');
 const socketHandler = require('./socket/handler');
 
@@ -81,7 +81,6 @@ app.get('/', auth, async (req, res) => {
       ]
     });
 
-    const Message = require('./models/Message');
     const allMessages = await Message.findAll({
       where: {
         [Op.or]: [

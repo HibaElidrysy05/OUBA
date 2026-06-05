@@ -1,19 +1,25 @@
 const { Message, User, Group, GroupMember } = require('../models');
 
 const onlineUsers = new Map();
+const disconnectTimers = new Map();
 
 module.exports = (io) => {
   io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
     socket.on('user-online', (userId) => {
-      onlineUsers.set(userId.toString(), socket.id);
-      socket.userId = userId.toString();
+      const uid = userId.toString();
+      if (disconnectTimers.has(uid)) {
+        clearTimeout(disconnectTimers.get(uid));
+        disconnectTimers.delete(uid);
+      }
+      onlineUsers.set(uid, socket.id);
+      socket.userId = uid;
       socket.join('global');
-      socket.join('user:' + userId.toString());
+      socket.join('user:' + uid);
       const onlineArray = Array.from(onlineUsers.keys());
       socket.emit('initial-status', onlineArray);
-      socket.to('global').emit('user-status', { userId: userId.toString(), status: 'online' });
+      socket.to('global').emit('user-status', { userId: uid, status: 'online' });
     });
 
     socket.on('join-chat', ({ userId, friendId }) => {
@@ -178,8 +184,13 @@ module.exports = (io) => {
 
     socket.on('disconnect', () => {
       if (socket.userId) {
-        onlineUsers.delete(socket.userId);
-        io.to('global').emit('user-status', { userId: socket.userId, status: 'offline' });
+        const uid = socket.userId;
+        if (disconnectTimers.has(uid)) clearTimeout(disconnectTimers.get(uid));
+        disconnectTimers.set(uid, setTimeout(() => {
+          onlineUsers.delete(uid);
+          disconnectTimers.delete(uid);
+          io.to('global').emit('user-status', { userId: uid, status: 'offline' });
+        }, 5000));
       }
       console.log('User disconnected:', socket.id);
     });

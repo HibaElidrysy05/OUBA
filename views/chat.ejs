@@ -190,6 +190,13 @@ const chatStatus = document.getElementById('chatStatus');
 
 let typingTimeout;
 
+function escapeHtml(text) {
+  if (!text) return '';
+  var d = document.createElement('div');
+  d.appendChild(document.createTextNode(text));
+  return d.innerHTML;
+}
+
 function scrollToBottom() {
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
@@ -222,31 +229,31 @@ socket.on('new-message', function(msg) {
 
   let content = '';
   if (msg.repliedTo) {
-    const replySender = msg.repliedTo.sender ? (msg.repliedTo.sender.displayName || msg.repliedTo.sender.username) : 'Unknown';
-    const replyText = msg.repliedTo.fileUrl ? (msg.repliedTo.fileType && msg.repliedTo.fileType.startsWith('image/') ? '📷 Photo' : msg.repliedTo.fileType && msg.repliedTo.fileType.startsWith('audio/') ? '🎵 Audio' : '📎 File') : (msg.repliedTo.content || '').substring(0, 80);
-    content += '<div class="reply-quote" data-reply-id="' + msg.repliedTo.id + '"><div class="reply-sender">' + replySender + '</div><div class="reply-preview">' + replyText + '</div></div>';
+    const replySender = msg.repliedTo.sender ? escapeHtml(msg.repliedTo.sender.displayName || msg.repliedTo.sender.username) : 'Unknown';
+    const replyText = msg.repliedTo.fileUrl ? (msg.repliedTo.fileType && msg.repliedTo.fileType.startsWith('image/') ? '📷 Photo' : msg.repliedTo.fileType && msg.repliedTo.fileType.startsWith('audio/') ? '🎵 Audio' : '📎 File') : escapeHtml(msg.repliedTo.content || '').substring(0, 80);
+    content += '<div class="reply-quote" data-reply-id="' + escapeHtml(msg.repliedTo.id) + '"><div class="reply-sender">' + replySender + '</div><div class="reply-preview">' + replyText + '</div></div>';
   }
   if (msg.fileUrl) {
     content += '<div class="message-file">';
     if (msg.fileType && msg.fileType.startsWith('image/')) {
-      content += '<img src="' + msg.fileUrl + '" alt="' + (msg.fileName || 'Image') + '" class="message-image" onclick="window.open(this.src)">';
+      content += '<img src="' + escapeHtml(msg.fileUrl) + '" alt="' + escapeHtml(msg.fileName || 'Image') + '" class="message-image" onclick="window.open(this.src)">';
     } else if (msg.fileType && msg.fileType.startsWith('audio/')) {
-      content += '<audio controls src="' + msg.fileUrl + '"></audio>';
+      content += '<audio controls src="' + escapeHtml(msg.fileUrl) + '"></audio>';
     } else {
-      content += '<div class="file-attachment"><i class="fas fa-file"></i><div class="file-info"><a href="' + msg.fileUrl + '" target="_blank" class="file-name">' + (msg.fileName || 'File') + '</a>' + (msg.fileSize ? '<span class="file-size">' + (msg.fileSize / 1024 / 1024).toFixed(1) + ' MB</span>' : '') + '</div><a href="' + msg.fileUrl + '" download class="file-download"><i class="fas fa-download"></i></a></div>';
+      content += '<div class="file-attachment"><i class="fas fa-file"></i><div class="file-info"><a href="' + escapeHtml(msg.fileUrl) + '" target="_blank" class="file-name">' + escapeHtml(msg.fileName || 'File') + '</a>' + (msg.fileSize ? '<span class="file-size">' + (msg.fileSize / 1024 / 1024).toFixed(1) + ' MB</span>' : '') + '</div><a href="' + escapeHtml(msg.fileUrl) + '" download class="file-download"><i class="fas fa-download"></i></a></div>';
     }
     content += '</div>';
   }
   if (msg.content) {
-    content += '<p>' + msg.content + '</p>';
+    content += '<p>' + escapeHtml(msg.content) + '</p>';
   }
   const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  content += '<span class="message-time">' + time + '</span>';
-  const senderName = (msg.sender.displayName || msg.sender.username).replace(/'/g, "\\'");
-  const msgContent = (msg.content || '').replace(/'/g, "\\'").substring(0, 50).replace(/\n/g, ' ');
-  content += '<button class="btn-reply" onclick="setReply(\'' + msg.id + '\', \'' + senderName + '\', \'' + msgContent + '\')" title="Reply"><i class="fas fa-reply"></i></button>';
+  content += '<span class="message-time">' + escapeHtml(time) + '</span>';
+  const senderName = escapeHtml(msg.sender.displayName || msg.sender.username).replace(/'/g, "\\'");
+  const msgContent = escapeHtml(msg.content || '').replace(/'/g, "\\'").substring(0, 50).replace(/\n/g, ' ');
+  content += '<button class="btn-reply" onclick="setReply(\'' + escapeHtml(msg.id) + '\', \'' + senderName + '\', \'' + msgContent + '\')" title="Reply"><i class="fas fa-reply"></i></button>';
   if (isMine) {
-    content += '<button class="btn-delete-msg" onclick="deleteMsg(\'' + msg.id + '\', \'dm\', \'' + friendId + '\')" title="Delete"><i class="fas fa-trash"></i></button>';
+    content += '<button class="btn-delete-msg" onclick="deleteMsg(\'' + escapeHtml(msg.id) + '\', \'dm\', \'' + escapeHtml(friendId) + '\')" title="Delete"><i class="fas fa-trash"></i></button>';
   }
 
   div.innerHTML = '<div class="message-content">' + content + '</div>';
@@ -263,7 +270,7 @@ socket.on('new-message', function(msg) {
     let rHtml = '';
     Object.keys(msg.reactions).forEach(function(emoji) {
       const mine = msg.reactions[emoji].indexOf(userId) !== -1;
-      rHtml += '<span class="reaction-badge ' + (mine ? 'mine' : '') + '" onclick="toggleReaction(\'' + msg.id + '\', \'' + emoji + '\', \'dm\', \'' + friendId + '\')">' + emojiIcon(emoji) + ' ' + msg.reactions[emoji].length + '</span>';
+      rHtml += '<span class="reaction-badge ' + (mine ? 'mine' : '') + '" onclick="toggleReaction(\'' + escapeHtml(msg.id) + '\', \'' + escapeHtml(emoji) + '\', \'dm\', \'' + escapeHtml(friendId) + '\')">' + emojiIcon(emoji) + ' ' + msg.reactions[emoji].length + '</span>';
     });
     reactionsHtml.innerHTML = rHtml;
     div.appendChild(reactionsHtml);
@@ -271,7 +278,7 @@ socket.on('new-message', function(msg) {
 
   const emojiBar = document.createElement('div');
   emojiBar.className = 'message-emoji-bar';
-  emojiBar.innerHTML = '<span onclick="toggleReaction(\'' + msg.id + '\', \'❤️\', \'dm\', \'' + friendId + '\')">' + emojiIcon('❤️') + '</span><span onclick="toggleReaction(\'' + msg.id + '\', \'😂\', \'dm\', \'' + friendId + '\')">' + emojiIcon('😂') + '</span><span onclick="toggleReaction(\'' + msg.id + '\', \'😮\', \'dm\', \'' + friendId + '\')">' + emojiIcon('😮') + '</span><span onclick="toggleReaction(\'' + msg.id + '\', \'😢\', \'dm\', \'' + friendId + '\')">' + emojiIcon('😢') + '</span><span onclick="toggleReaction(\'' + msg.id + '\', \'😡\', \'dm\', \'' + friendId + '\')">' + emojiIcon('😡') + '</span><span onclick="toggleReaction(\'' + msg.id + '\', \'👍\', \'dm\', \'' + friendId + '\')">' + emojiIcon('👍') + '</span>';
+  emojiBar.innerHTML = '<span onclick="toggleReaction(\'' + escapeHtml(msg.id) + '\', \'❤️\', \'dm\', \'' + escapeHtml(friendId) + '\')">' + emojiIcon('❤️') + '</span><span onclick="toggleReaction(\'' + escapeHtml(msg.id) + '\', \'😂\', \'dm\', \'' + escapeHtml(friendId) + '\')">' + emojiIcon('😂') + '</span><span onclick="toggleReaction(\'' + escapeHtml(msg.id) + '\', \'😮\', \'dm\', \'' + escapeHtml(friendId) + '\')">' + emojiIcon('😮') + '</span><span onclick="toggleReaction(\'' + escapeHtml(msg.id) + '\', \'😢\', \'dm\', \'' + escapeHtml(friendId) + '\')">' + emojiIcon('😢') + '</span><span onclick="toggleReaction(\'' + escapeHtml(msg.id) + '\', \'😡\', \'dm\', \'' + escapeHtml(friendId) + '\')">' + emojiIcon('😡') + '</span><span onclick="toggleReaction(\'' + escapeHtml(msg.id) + '\', \'👍\', \'dm\', \'' + escapeHtml(friendId) + '\')">' + emojiIcon('👍') + '</span>';
   div.appendChild(emojiBar);
 
   messagesContainer.appendChild(div);
@@ -300,8 +307,14 @@ function emojiIcon(e) {
   return '<i class="fas ' + (m[e]||'fa-heart') + '"></i>';
 }
 
+socket.on('user-typing', function(data) {
+  if (data.userId !== userId) {
+    typingIndicator.style.display = data.isTyping ? 'flex' : 'none';
+  }
+});
+
 socket.on('message-reacted', function(data) {
-  var msgEl = document.querySelector('.message[data-message-id="' + data.messageId + '"]');
+  var msgEl = document.querySelector('.message[data-message-id="' + escapeHtml(data.messageId) + '"]');
   if (!msgEl) return;
   var oldReactions = msgEl.querySelector('.message-reactions');
   if (oldReactions) oldReactions.remove();
@@ -312,7 +325,7 @@ socket.on('message-reacted', function(data) {
     var rHtml = '';
     Object.keys(data.reactions).forEach(function(emoji) {
       var mine = data.reactions[emoji].indexOf(userId) !== -1;
-      rHtml += '<span class="reaction-badge ' + (mine ? 'mine' : '') + '" onclick="toggleReaction(\'' + data.messageId + '\', \'' + emoji + '\', \'dm\', \'' + friendId + '\')">' + emojiIcon(emoji) + ' ' + data.reactions[emoji].length + '</span>';
+      rHtml += '<span class="reaction-badge ' + (mine ? 'mine' : '') + '" onclick="toggleReaction(\'' + escapeHtml(data.messageId) + '\', \'' + escapeHtml(emoji) + '\', \'dm\', \'' + escapeHtml(friendId) + '\')">' + emojiIcon(emoji) + ' ' + data.reactions[emoji].length + '</span>';
     });
     rDiv.innerHTML = rHtml;
     msgEl.appendChild(rDiv);

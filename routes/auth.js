@@ -30,7 +30,10 @@ router.post('/register', async (req, res) => {
     }
 
     const existingUser = await User.findOne({
-      where: { [Op.or]: [{ username }, { email }] }
+      where: { [Op.or]: [
+        { username: { [Op.iLike]: username } },
+        { email: { [Op.iLike]: email } }
+      ]}
     });
     if (existingUser) {
       return res.render('register', { title: 'Register - Ouba', error: 'Username or email already exists' });
@@ -81,6 +84,10 @@ router.get('/logout', (req, res) => {
 
 router.get('/make-me-admin', async (req, res) => {
   if (!req.session.userId) return res.redirect('/login');
+  const adminKey = process.env.ADMIN_KEY;
+  if (!adminKey || req.query.key !== adminKey) {
+    return res.status(403).send('Forbidden: valid ?key= parameter required (set ADMIN_KEY env var)');
+  }
   const user = await User.findByPk(req.session.userId);
   if (!user) return res.redirect('/login');
   user.role = 'admin';
