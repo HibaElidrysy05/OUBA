@@ -57,7 +57,6 @@
       if (userId) {
         window.appSocket.emit('user-online', userId);
         subscribePush(userId);
-        setTimeout(function() { if (window.updateNotifButton) updateNotifButton(); }, 2000);
       }
     });
 
@@ -136,7 +135,6 @@
         });
         localStorage.setItem('push-subscribed', 'true');
         localStorage.setItem('vapid-public-key', data.publicKey);
-        if (window.updateNotifButton) window.updateNotifButton();
         if (window.updateNotifBanner) window.updateNotifBanner();
         console.log('Push subscribed successfully');
       } catch (e) {
@@ -181,7 +179,6 @@
         });
         localStorage.setItem('push-subscribed', 'true');
         localStorage.setItem('vapid-public-key', data.publicKey);
-        if (window.updateNotifButton) window.updateNotifButton();
         if (window.updateNotifBanner) window.updateNotifBanner();
         console.log('Push subscribed from button');
       } catch (e) {

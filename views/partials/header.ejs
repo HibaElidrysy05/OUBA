@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= typeof title !== 'undefined' ? title : 'Ouba' %></title>
-  <link rel="stylesheet" href="/css/style.css?v=12">
+  <link rel="stylesheet" href="/css/style.css?v=13">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/img/icon.svg">
@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#FFB6C1">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
-  <script src="/js/app.js?v=11"></script>
+  <script src="/js/app.js?v=12"></script>
   <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -42,29 +42,8 @@
     }
   }
   window.updateNotifBanner = updateNotifBanner;
-  function updateNotifButton() {
-    var btn = document.getElementById('notifToggle');
-    if (!btn) return;
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) { btn.style.display = 'none'; return; }
-    if (Notification.permission === 'granted' && localStorage.getItem('push-subscribed') === 'true') {
-      btn.style.display = 'none';
-      return;
-    }
-    btn.style.display = '';
-    var icon = document.getElementById('notifIcon');
-    var txt = document.getElementById('notifText');
-    if (Notification.permission === 'denied') {
-      icon.className = 'fas fa-exclamation-triangle';
-      txt.textContent = 'Notifications Blocked';
-    } else {
-      icon.className = 'fas fa-bell';
-      txt.textContent = 'Enable Notifications';
-    }
-  }
-  window.updateNotifButton = updateNotifButton;
-  updateNotifButton();
   updateNotifBanner();
-  document.addEventListener('DOMContentLoaded', function() { updateNotifButton(); updateNotifBanner(); });
+  document.addEventListener('DOMContentLoaded', updateNotifBanner);
   </script>
 </head>
 <body data-user-id="<%= typeof currentUser !== 'undefined' && currentUser ? currentUser.id : '' %>">
@@ -116,9 +95,11 @@
           <span>Admin</span>
         </a>
         <% } %>
+        <% if (typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'admin') { %>
         <a href="/push/debug" class="nav-item">
           <i class="fas fa-bug"></i><span>Push Debug</span>
         </a>
+        <% } %>
         <a href="/logout" class="nav-item mobile-logout">
           <i class="fas fa-sign-out-alt"></i>
           <span>Logout</span>
