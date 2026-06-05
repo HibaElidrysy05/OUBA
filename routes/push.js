@@ -44,4 +44,51 @@ router.post('/push-unsubscribe', async (req, res) => {
   }
 });
 
+router.get('/push/debug', async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    const { PushSubscription } = require('../models');
+    const subs = await PushSubscription.findAll({ where: { userId } });
+    const { User } = require('../models');
+    const user = await User.findByPk(userId);
+    res.render('push-debug', {
+      title: 'Push Debug - Ouba',
+      user,
+      subs: subs.map(s => ({ id: s.id, endpoint: s.endpoint.substring(0, 80) + '...', createdAt: s.createdAt })),
+      vapidKey: vapidPublicKey
+    });
+  } catch (err) {
+    res.status(500).send('Error: ' + err.message);
+  }
+});
+
+router.post('/push/test', async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    const { PushSubscription } = require('../models');
+    const subs = await PushSubscription.findAll({ where: { userId } });
+    if (subs.length === 0) return res.json({ error: 'No push subscriptions found' });
+    let sent = 0, failed = 0;
+    for (const sub of subs) {
+      try {
+        await webpush.sendNotification({
+          endpoint: sub.endpoint,
+          keys: { auth: sub.auth, p256dh: sub.p256dh }
+        }, JSON.stringify({
+          title: 'Ouba Test',
+          body: 'This is a test notification from Ouba!',
+          url: '/'
+        }));
+        sent++;
+      } catch (err) {
+        failed++;
+        if (err.statusCode === 410 || err.statusCode === 404) await sub.destroy();
+      }
+    }
+    res.json({ sent, failed });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
