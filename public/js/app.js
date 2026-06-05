@@ -154,20 +154,20 @@
     }
 
     window.toggleNotifications = async function () {
-      if (!('Notification' in window)) { alert('Notifications not supported'); return; }
+      if (!('Notification' in window)) { alert('Notifications not supported on this browser'); return; }
       if (Notification.permission === 'denied') {
-        alert('Notifications are blocked. Enable them in Settings > Safari > Notifications');
+        alert('Notifications are blocked. Please enable them in your browser/device settings.');
         return;
       }
       if (Notification.permission === 'default') {
         var perm = await Notification.requestPermission();
-        if (perm !== 'granted') { alert('Permission denied'); return; }
+        if (perm !== 'granted') { alert('Notification permission was not granted'); return; }
       }
       try {
         var reg = await navigator.serviceWorker.ready;
         var resp = await fetch('/vapid-public-key');
         var data = await resp.json();
-        if (!data.publicKey) { alert('Server not ready for push yet'); return; }
+        if (!data.publicKey) { alert('Server is not ready for push yet. Try again later.'); return; }
         var sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(data.publicKey)
@@ -180,7 +180,6 @@
         localStorage.setItem('push-subscribed', 'true');
         localStorage.setItem('vapid-public-key', data.publicKey);
         if (window.updateNotifBanner) window.updateNotifBanner();
-        console.log('Push subscribed from button');
       } catch (e) {
         console.warn('Manual subscribe failed:', e);
         alert('Failed to enable notifications: ' + e.message);
@@ -203,11 +202,7 @@
         installPrompt.prompt();
         return;
       }
-      if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
-        alert('Tap Share icon \u2192 scroll down \u2192 tap "Add to Home Screen"');
-      } else {
-        alert('Open browser menu \u2192 "Add to Home Screen" or "Install App"');
-      }
+      alert('To install: open your browser menu and tap "Add to Home Screen" or "Install App"');
     };
   } catch (e) {
     console.error('Socket init error:', e);
