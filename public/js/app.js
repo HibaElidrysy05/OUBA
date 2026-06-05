@@ -17,7 +17,12 @@
       var allDots = document.querySelectorAll('.status-dot[data-user-id]');
       allDots.forEach(function (dot) {
         var uid = dot.dataset.userId;
-        dot.className = 'status-dot ' + (onlineIds.indexOf(uid) !== -1 ? 'online' : 'offline');
+        var status = onlineIds.indexOf(uid) !== -1 ? 'online' : 'offline';
+        dot.className = 'status-dot ' + status;
+        var txt = dot.nextElementSibling;
+        if (txt && txt.classList.contains('status-text')) {
+          txt.textContent = status === 'online' ? 'Online' : 'Offline';
+        }
       });
     }
 
