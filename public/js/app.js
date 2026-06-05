@@ -135,6 +135,7 @@
         });
         localStorage.setItem('push-subscribed', 'true');
         localStorage.setItem('vapid-public-key', data.publicKey);
+        if (window.updateNotifButton) window.updateNotifButton();
         console.log('Push subscribed successfully');
       } catch (e) {
         console.warn('Push subscription failed:', e);
@@ -151,6 +152,40 @@
       }
       return output;
     }
+
+    window.toggleNotifications = async function () {
+      if (!('Notification' in window)) { alert('Notifications not supported'); return; }
+      if (Notification.permission === 'denied') {
+        alert('Notifications are blocked. Enable them in Settings > Safari > Notifications');
+        return;
+      }
+      if (Notification.permission === 'default') {
+        var perm = await Notification.requestPermission();
+        if (perm !== 'granted') { alert('Permission denied'); return; }
+      }
+      try {
+        var reg = await navigator.serviceWorker.ready;
+        var resp = await fetch('/vapid-public-key');
+        var data = await resp.json();
+        if (!data.publicKey) { alert('Server not ready for push yet'); return; }
+        var sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(data.publicKey)
+        });
+        await fetch('/push-subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: sub.endpoint, keys: sub.toJSON().keys })
+        });
+        localStorage.setItem('push-subscribed', 'true');
+        localStorage.setItem('vapid-public-key', data.publicKey);
+        if (window.updateNotifButton) window.updateNotifButton();
+        console.log('Push subscribed from button');
+      } catch (e) {
+        console.warn('Manual subscribe failed:', e);
+        alert('Failed to enable notifications: ' + e.message);
+      }
+    };
 
     var installPrompt = null;
     window.addEventListener('beforeinstallprompt', function (e) {
