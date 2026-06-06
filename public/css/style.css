@@ -2267,6 +2267,11 @@ html, body {
   }
 }
 
+/* Mobile nav logo */
+.nav-logo {
+  display: none;
+}
+
 /* Responsive - Phone */
 .mobile-logout-section {
   display: none;
@@ -2312,9 +2317,19 @@ html, body {
     align-items: center;
   }
 
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+  }
+  .nav-logo svg {
+    width: 28px;
+    height: 28px;
+  }
   .nav-item {
-    padding: 8px 12px;
-    font-size: 20px;
+    padding: 8px 10px;
+    font-size: 18px;
   }
 
   .nav-item span {
