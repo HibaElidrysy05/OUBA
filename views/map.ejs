@@ -6,6 +6,11 @@
       <span class="toggle-track"></span>
       <span class="toggle-label"><i class="fas fa-map-marker-alt map-location-icon" style="color:#FFB6C1"></i> Share my location</span>
     </label>
+    <label class="toggle-switch" id="followToggle" style="margin-left:8px">
+      <input type="checkbox" id="followMe">
+      <span class="toggle-track"></span>
+      <span class="toggle-label"><i class="fas fa-crosshairs" style="color:#FFB6C1"></i> Follow</span>
+    </label>
     <span class="friend-counter">
       <i class="fas fa-users"></i>
       <span><span class="count" id="friendCount"><%= friends.filter(function(f){return f.shareLocation && f.latitude && f.longitude}).length %></span> friends nearby</span>
@@ -65,6 +70,7 @@
 }
 [data-theme="blue"] .map-location-icon { color: #5B8DEF !important; }
 [data-theme="rainbow"] .map-location-icon { color: #b366cc !important; }
+@keyframes pulse { 0%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} 100%{opacity:1;transform:scale(1)} }
 </style>
 <script>
 var theme = document.body.getAttribute('data-theme') || 'pink';
@@ -119,6 +125,7 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
 var bounds = [];
 var markers = {};
 var userMarker = null;
+var accuracyCircle = null;
 var watchingId = null;
 var currentUserId = '<%= user.id %>';
 <% if (user.shareLocation && user.latitude && user.longitude) { %>
@@ -129,39 +136,79 @@ var userLat = undefined;
 var userLng = undefined;
 <% } %>
 
-function friendIcon(pic, name) {
+function friendIcon(pic, name, moving) {
   var initial = (name || '?')[0].toUpperCase();
+  var pulse = moving ? ';animation:pulse 1.5s infinite' : '';
   if (pic) {
-    return '<img src="' + pic + '" style="width:40px;height:40px;border-radius:50%;border:3px solid ' + c.accent + ';object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.15)">';
+    return '<div style="position:relative"><img src="' + pic + '" style="width:40px;height:40px;border-radius:50%;border:3px solid ' + c.accent + ';object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.15)"><div style="position:absolute;bottom:-2px;right:-2px;width:10px;height:10px;border-radius:50%;background:#4CAF50;border:2px solid white' + pulse + '"></div></div>';
   }
-  return '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,' + c.gradientA + ',' + c.gradientB + ');display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px;border:3px solid ' + c.border + ';box-shadow:0 2px 8px rgba(0,0,0,0.15)">' + initial + '</div>';
+  return '<div style="position:relative"><div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,' + c.gradientA + ',' + c.gradientB + ');display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px;border:3px solid ' + c.border + ';box-shadow:0 2px 8px rgba(0,0,0,0.15)">' + initial + '</div><div style="position:absolute;bottom:-2px;right:-2px;width:10px;height:10px;border-radius:50%;background:#4CAF50;border:2px solid white' + pulse + '"></div></div>';
 }
 
 function userIconHtml() {
-  return '<div style="position:relative"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,' + c.userGradA + ',' + c.userGradB + ');display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:3px solid white;box-shadow:0 2px 12px ' + c.shadow + '"><i class="fas fa-user"></i></div><div style="width:8px;height:8px;border-radius:50%;background:' + c.userAccent + ';margin:2px auto 0;opacity:0.6"></div></div>';
+  return '<div style="position:relative"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,' + c.userGradA + ',' + c.userGradB + ');display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:3px solid white;box-shadow:0 2px 12px ' + c.shadow + '"><i class="fas fa-user"></i></div><div style="width:8px;height:8px;border-radius:50%;background:#4CAF50;margin:2px auto 0"></div></div>';
 }
 
-function addFriendMarker(id, lat, lng, name, pic) {
-  if (markers[id]) {
-    markers[id].setLatLng([lat, lng]);
+// Smooth marker movement
+var moveTimers = {};
+function animateMarker(id, lat, lng, name, pic) {
+  if (!markers[id]) {
+    var icon = L.divIcon({
+      html: friendIcon(pic, name, false),
+      className: '',
+      iconSize: [40, 40],
+      iconAnchor: [20, 20]
+    });
+    var marker = L.marker([lat, lng], { icon: icon }).addTo(map);
+    marker.bindPopup('<div style="text-align:center"><b>' + name + '</b></div>');
+    marker._moving = false;
+    markers[id] = marker;
+    bounds.push([lat, lng]);
+    if (Object.keys(markers).length === 1) {
+      map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+    }
     return;
   }
-  var icon = L.divIcon({
-    html: friendIcon(pic, name),
+  var marker = markers[id];
+  var from = marker.getLatLng();
+  var steps = 20;
+  var step = 0;
+  var dLat = (lat - from.lat) / steps;
+  var dLng = (lng - from.lng) / steps;
+  if (moveTimers[id]) { clearInterval(moveTimers[id]); }
+  // Show moving indicator
+  marker._moving = true;
+  marker.setIcon(L.divIcon({
+    html: friendIcon(pic, name, true),
     className: '',
     iconSize: [40, 40],
     iconAnchor: [20, 20]
-  });
-  var marker = L.marker([lat, lng], { icon: icon }).addTo(map);
-  marker.bindPopup('<div style="text-align:center"><b>' + name + '</b></div>');
-  markers[id] = marker;
-  bounds.push([lat, lng]);
-  if (Object.keys(markers).length === 1) {
-    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
-  }
+  }));
+  moveTimers[id] = setInterval(function() {
+    step++;
+    if (step >= steps) {
+      clearInterval(moveTimers[id]);
+      delete moveTimers[id];
+      marker.setLatLng([lat, lng]);
+      marker._moving = false;
+      marker.setIcon(L.divIcon({
+        html: friendIcon(pic, name, false),
+        className: '',
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
+      }));
+    } else {
+      marker.setLatLng([from.lat + dLat * step, from.lng + dLng * step]);
+    }
+  }, 40);
+}
+
+function addFriendMarker(id, lat, lng, name, pic) {
+  animateMarker(id, lat, lng, name, pic);
 }
 
 function removeFriendMarker(id) {
+  if (moveTimers[id]) { clearInterval(moveTimers[id]); delete moveTimers[id]; }
   if (markers[id]) {
     map.removeLayer(markers[id]);
     delete markers[id];
@@ -197,9 +244,11 @@ if (bounds.length > 0) {
 }
 updateFriendCount();
 
+var followMe = false;
 function updateUserLocation(pos) {
   var lat = pos.coords.latitude;
   var lng = pos.coords.longitude;
+  var acc = pos.coords.accuracy || 0;
   if (!userMarker) {
     var icon = L.divIcon({
       html: userIconHtml(),
@@ -209,9 +258,16 @@ function updateUserLocation(pos) {
     });
     userMarker = L.marker([lat, lng], { icon: icon }).addTo(map);
     userMarker.bindPopup('<div style="text-align:center"><b>You</b></div>');
-    map.setView([lat, lng], 12);
+    accuracyCircle = L.circle([lat, lng], { radius: acc, color: c.accent, fillColor: c.accent, fillOpacity: 0.1, weight: 1, opacity: 0.3 }).addTo(map);
+    map.setView([lat, lng], 14);
   } else {
     userMarker.setLatLng([lat, lng]);
+    accuracyCircle.setLatLng([lat, lng]);
+    accuracyCircle.setRadius(acc);
+    if (followMe || document.getElementById('followMe').checked) {
+      followMe = true;
+      map.setView([lat, lng], map.getZoom());
+    }
   }
   if (document.getElementById('shareToggle').checked) {
     fetch('/api/location/update', {
@@ -245,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(function(pos) {
             updateUserLocation(pos);
-            watchingId = navigator.geolocation.watchPosition(updateUserLocation, function(){}, { enableHighAccuracy: true });
+            watchingId = navigator.geolocation.watchPosition(updateUserLocation, function(){}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
           }, function() {
             alert('Could not get your location. Enable location services in Settings.');
             toggle.checked = false;
@@ -256,6 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       } else {
         if (watchingId) { navigator.geolocation.clearWatch(watchingId); watchingId = null; }
+        followMe = false;
         if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
         fetch('/api/location/update', {
           method: 'POST',
@@ -269,7 +326,18 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     if (toggle.checked && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(updateUserLocation, function(){});
+      watchingId = navigator.geolocation.watchPosition(updateUserLocation, function(){}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
     }
+  }
+  var followToggle = document.getElementById('followMe');
+  if (followToggle) {
+    followToggle.addEventListener('change', function() {
+      followMe = this.checked;
+      if (followMe && userMarker) {
+        var pos = userMarker.getLatLng();
+        map.setView([pos.lat, pos.lng], map.getZoom());
+      }
+    });
   }
 });
 </script>

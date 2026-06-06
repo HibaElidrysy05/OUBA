@@ -289,6 +289,10 @@ module.exports = (io) => {
       try {
         const userId = socket.userId;
         if (!userId) return;
+        await User.update(
+          { latitude: data.latitude, longitude: data.longitude, shareLocation: true },
+          { where: { id: userId } }
+        );
         const user = await User.findByPk(userId, { attributes: ['id', 'username', 'displayName', 'profilePic'] });
         if (!user) return;
         const friends = await user.getFriends({ attributes: ['id'] });
