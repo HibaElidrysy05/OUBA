@@ -50,9 +50,68 @@
       </div>
     </div>
   </div>
+
+  <div class="card" style="margin-top:24px">
+    <div class="card-header">
+      <h2><i class="fas fa-toggle-on"></i> Feature Flags</h2>
+    </div>
+    <div class="card-body">
+      <div class="flag-list">
+        <div class="flag-item">
+          <div class="flag-info">
+            <strong>Audio Recording</strong>
+            <span class="flag-desc">Allow users to record and send voice messages</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" class="flag-toggle" data-key="audio_recording" <%= flags['audio_recording'] !== false ? 'checked' : '' %>>
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
+<style>
+.flag-list { display:flex; flex-direction:column; gap:16px; }
+.flag-item {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 16px;
+  background:var(--pink-lightest);
+  border-radius:12px;
+  border:1px solid var(--pink-light);
+}
+.flag-info { display:flex; flex-direction:column; gap:2px; }
+.flag-info strong { font-size:15px; color:var(--text-dark); }
+.flag-desc { font-size:13px; color:var(--text-light); }
+</style>
+
 <script>
+document.querySelectorAll('.flag-toggle').forEach(function(cb) {
+  cb.addEventListener('change', function() {
+    var key = this.dataset.key;
+    var value = this.checked;
+    fetch('/admin/api/flags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: key, value: value })
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.success) {
+          alert('Failed to update flag');
+          cb.checked = !cb.checked;
+        }
+      })
+      .catch(function() {
+        alert('Network error');
+        cb.checked = !cb.checked;
+      });
+  });
+});
+
 document.querySelectorAll('.role-select').forEach(function(sel) {
   sel.addEventListener('change', function() {
     if (!confirm('Change this user\'s role to "' + this.value + '"?')) {

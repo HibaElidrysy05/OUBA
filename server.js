@@ -48,11 +48,17 @@ app.use(session({
   }
 }));
 
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
   res.locals.currentUser = null;
+  res.locals.flags = {};
+  try {
+    const FeatureFlag = require('./models/FeatureFlag');
+    const allFlags = await FeatureFlag.findAll();
+    allFlags.forEach(f => { res.locals.flags[f.key] = f.value; });
+  } catch (_) {}
   if (req.session.userId) {
     User.findByPk(req.session.userId, {
       attributes: ['id', 'username', 'displayName', 'profilePic', 'bio', 'role']

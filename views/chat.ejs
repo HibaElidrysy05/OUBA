@@ -163,9 +163,11 @@
         <button type="button" class="btn-input" id="fileBtn" title="Attach file">
           <i class="fas fa-paperclip"></i>
         </button>
+        <% if (flags && flags.audio_recording !== false) { %>
         <button type="button" class="btn-input" id="micBtn" title="Record audio">
           <i class="fas fa-microphone"></i>
         </button>
+        <% } %>
         <input type="file" id="fileInput" accept="image/*,audio/*,video/*,application/*,text/*" style="display:none">
       </div>
       <div id="recordingBar" class="recording-bar" style="display:none">
@@ -495,6 +497,7 @@ const recordingTimerEl = document.getElementById('recordingTimer');
 const stopRecordingBtn = document.getElementById('stopRecording');
 const cancelRecordingBtn = document.getElementById('cancelRecording');
 
+if (micBtn) {
 micBtn.addEventListener('click', async function() {
   if (mediaRecorder && mediaRecorder.state === 'recording') return;
   try {
@@ -562,6 +565,7 @@ cancelRecordingBtn.addEventListener('click', function() {
   micBtn.style.display = '';
   recordingBar.style.display = 'none';
 });
+} // end if (micBtn)
 
 function sendMessageWithFile(fileUrl, fileType, fileName, fileSize) {
   var replyParam = replyToId || null;

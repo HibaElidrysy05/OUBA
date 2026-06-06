@@ -3,6 +3,7 @@ const router = express.Router();
 const streamifier = require('streamifier');
 const cloudinary = require('../config/cloudinary');
 const auth = require('../middleware/auth');
+const FeatureFlag = require('../models/FeatureFlag');
 
 router.use(auth);
 
@@ -33,6 +34,13 @@ router.post('/file', async (req, res) => {
 
     if (!file.data || file.data.length === 0) {
       return res.status(400).json({ error: 'Empty file' });
+    }
+
+    if (file.mimetype && (file.mimetype.startsWith('audio/') || file.mimetype === 'audio/webm')) {
+      const flag = await FeatureFlag.findByPk('audio_recording');
+      if (flag && flag.value === false) {
+        return res.status(403).json({ error: 'Audio recording is disabled by admin' });
+      }
     }
 
     const allowedTypes = [

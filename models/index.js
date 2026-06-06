@@ -6,6 +6,7 @@ const Group = require('./Group');
 const GroupMember = require('./GroupMember');
 const PasswordResetToken = require('./PasswordResetToken');
 const PushSubscription = require('./PushSubscription');
+const FeatureFlag = require('./FeatureFlag');
 
 User.hasMany(PasswordResetToken, { as: 'ResetTokens', foreignKey: 'userId' });
 PasswordResetToken.belongsTo(User, { foreignKey: 'userId' });
@@ -75,4 +76,4 @@ const syncDB = async () => {
   }
 };
 
-module.exports = { User, Message, FriendRequest, Group, GroupMember, PasswordResetToken, PushSubscription, syncDB };
+module.exports = { User, Message, FriendRequest, Group, GroupMember, PasswordResetToken, PushSubscription, FeatureFlag, syncDB };
