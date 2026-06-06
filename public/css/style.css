@@ -2267,8 +2267,8 @@ html, body {
   }
 }
 
-/* Mobile nav logo */
-.nav-logo {
+/* Mobile top bar */
+.mobile-top-bar {
   display: none;
 }
 
@@ -2317,15 +2317,18 @@ html, body {
     align-items: center;
   }
 
-  .nav-logo {
+  .mobile-top-bar {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
+    padding: 10px 16px 4px;
   }
-  .nav-logo svg {
-    width: 28px;
-    height: 28px;
+  .mobile-top-logo {
+    text-decoration: none;
+  }
+  #notifBanner {
+    margin-left: 16px !important;
+    margin-right: 16px !important;
   }
   .nav-item {
     padding: 8px 10px;
