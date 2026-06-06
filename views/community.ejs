@@ -1,31 +1,8 @@
 <%- include('partials/header', { title: 'Community - Ouba', activeNav: 'community' }) %>
 <div class="container" style="padding:20px;max-width:900px;margin:0 auto">
-  <div class="card" style="margin-bottom:24px">
-    <div class="card-header">
-      <h2><i class="fas fa-globe"></i> Community</h2>
-      <span style="font-size:13px;color:var(--text-light)">Share beautiful places & pictures</span>
-    </div>
-    <div class="card-body">
-      <form action="/community/create" method="POST" enctype="multipart/form-data" class="community-form">
-        <div class="form-group">
-          <label for="imageInput"><i class="fas fa-image"></i> Photo <span style="color:var(--text-light);font-weight:400">(required)</span></label>
-          <input type="file" id="imageInput" name="image" accept="image/*" required style="padding:8px;border:1px solid var(--pink-light);border-radius:var(--radius-sm);width:100%;font-size:14px">
-          <div id="imagePreview" style="display:none;margin-top:8px">
-            <img src="" alt="Preview" style="max-height:200px;border-radius:var(--radius-sm);max-width:100%">
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="locationInput"><i class="fas fa-map-pin"></i> Location <span style="color:var(--text-light);font-weight:400">(optional, max 100 chars)</span></label>
-          <input type="text" id="locationInput" name="location" placeholder="e.g. Paris, France" maxlength="100" style="padding:10px 14px;border:1px solid var(--pink-light);border-radius:var(--radius-sm);width:100%;font-size:14px">
-        </div>
-        <div class="form-group">
-          <label for="commentInput"><i class="fas fa-quote-right"></i> Comment <span style="color:var(--text-light);font-weight:400">(optional, max 100 chars)</span></label>
-          <textarea id="commentInput" name="comment" rows="2" placeholder="What's special about this place?" maxlength="100" style="padding:10px 14px;border:1px solid var(--pink-light);border-radius:var(--radius-sm);width:100%;font-size:14px;resize:vertical;font-family:inherit"></textarea>
-          <span class="char-count" style="font-size:12px;color:var(--text-light)">0/100</span>
-        </div>
-        <button type="submit" class="btn btn-primary"><i class="fas fa-upload"></i> Share with Community</button>
-      </form>
-    </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <h2 style="font-size:22px"><i class="fas fa-globe"></i> Community</h2>
+    <button class="btn btn-primary" onclick="openPostModal()"><i class="fas fa-plus"></i> New Post</button>
   </div>
 
   <% if (error) { %>
@@ -83,6 +60,36 @@
 <div class="lightbox-overlay" id="lightbox" style="display:none" onclick="closeLightbox()">
   <img src="" alt="" id="lightboxImg">
   <span class="lightbox-close">&times;</span>
+</div>
+
+<div class="modal-overlay" id="postModal" style="display:none">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h2><i class="fas fa-plus-circle"></i> New Post</h2>
+      <button class="modal-close" onclick="closePostModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form action="/community/create" method="POST" enctype="multipart/form-data" class="community-form" id="postForm">
+        <div class="form-group">
+          <label for="imageInput"><i class="fas fa-image"></i> Photo <span style="color:var(--text-light);font-weight:400">(required)</span></label>
+          <input type="file" id="imageInput" name="image" accept="image/*" required style="padding:8px;border:1px solid var(--pink-light);border-radius:var(--radius-sm);width:100%;font-size:14px">
+          <div id="imagePreview" style="display:none;margin-top:8px">
+            <img src="" alt="Preview" style="max-height:200px;border-radius:var(--radius-sm);max-width:100%">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="locationInput"><i class="fas fa-map-pin"></i> Location <span style="color:var(--text-light);font-weight:400">(optional, max 100 chars)</span></label>
+          <input type="text" id="locationInput" name="location" placeholder="e.g. Paris, France" maxlength="100" style="padding:10px 14px;border:1px solid var(--pink-light);border-radius:var(--radius-sm);width:100%;font-size:14px">
+        </div>
+        <div class="form-group">
+          <label for="commentInput"><i class="fas fa-quote-right"></i> Comment <span style="color:var(--text-light);font-weight:400">(optional, max 100 chars)</span></label>
+          <textarea id="commentInput" name="comment" rows="2" placeholder="What's special about this place?" maxlength="100" style="padding:10px 14px;border:1px solid var(--pink-light);border-radius:var(--radius-sm);width:100%;font-size:14px;resize:vertical;font-family:inherit"></textarea>
+          <span class="char-count" style="font-size:12px;color:var(--text-light)">0/100</span>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full"><i class="fas fa-upload"></i> Share with Community</button>
+      </form>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -221,6 +228,13 @@
 </style>
 
 <script>
+function openPostModal() {
+  document.getElementById('postModal').style.display = 'flex';
+}
+function closePostModal() {
+  document.getElementById('postModal').style.display = 'none';
+}
+
 document.getElementById('imageInput').addEventListener('change', function(e) {
   var preview = document.getElementById('imagePreview');
   var img = preview.querySelector('img');
@@ -237,7 +251,8 @@ document.getElementById('imageInput').addEventListener('change', function(e) {
 });
 
 document.getElementById('commentInput').addEventListener('input', function() {
-  document.querySelector('.char-count').textContent = this.value.length + '/100';
+  var el = this.parentElement.querySelector('.char-count');
+  if (el) el.textContent = this.value.length + '/100';
 });
 
 function openLightbox(src) {
@@ -261,5 +276,9 @@ function deletePost(id) {
       }
     });
 }
+
+document.getElementById('postModal').addEventListener('click', function(e) {
+  if (e.target === this) closePostModal();
+});
 </script>
 <%- include('partials/footer') %>

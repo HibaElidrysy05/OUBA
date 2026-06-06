@@ -253,10 +253,13 @@ module.exports = (io) => {
           attributes: ['id', 'senderId', 'groupId']
         });
 
-        await Message.update(
-          { read: true },
-          { where: { id: messageIds } }
-        );
+        const dmIds = messages.filter(m => !m.groupId).map(m => m.id);
+        if (dmIds.length > 0) {
+          await Message.update(
+            { read: true },
+            { where: { id: dmIds } }
+          );
+        }
 
         const groupIds = [...new Set(messages.filter(m => m.groupId).map(m => m.groupId))];
         for (const gid of groupIds) {
