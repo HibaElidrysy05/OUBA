@@ -303,7 +303,7 @@ scrollToBottom();
 
 const unreadIds = Array.from(document.querySelectorAll('.message-received[data-message-id]')).map(el => el.dataset.messageId);
 if (unreadIds.length > 0) {
-  socket.emit('mark-read', { messageIds: unreadIds });
+  socket.emit('mark-read', { messageIds: unreadIds, userId });
 }
 
 messagesContainer.addEventListener('click', function(e) {

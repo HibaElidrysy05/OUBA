@@ -262,7 +262,7 @@ messagesContainer.addEventListener('click', function(e) {
 
 const unreadIds = Array.from(document.querySelectorAll('.message-received[data-message-id]')).map(el => el.dataset.messageId);
 if (unreadIds.length > 0) {
-  socket.emit('mark-read', { messageIds: unreadIds });
+  socket.emit('mark-read', { messageIds: unreadIds, userId });
 }
 
 socket.on('new-message', function(msg) {
@@ -337,7 +337,7 @@ socket.on('new-message', function(msg) {
   messagesContainer.appendChild(div);
   scrollToBottom();
   if (!isMine && msg.id) {
-    socket.emit('mark-read', { messageIds: [msg.id] });
+    socket.emit('mark-read', { messageIds: [msg.id], userId });
   }
 });
 

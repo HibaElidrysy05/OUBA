@@ -246,7 +246,7 @@ module.exports = (io) => {
       }
     });
 
-    socket.on('mark-read', async ({ messageIds }) => {
+    socket.on('mark-read', async ({ messageIds, userId: dataUserId }) => {
       try {
         const messages = await Message.findAll({
           where: { id: messageIds },
@@ -261,12 +261,15 @@ module.exports = (io) => {
           );
         }
 
-        const groupIds = [...new Set(messages.filter(m => m.groupId).map(m => m.groupId))];
-        for (const gid of groupIds) {
-          await GroupMember.update(
-            { lastReadAt: new Date() },
-            { where: { userId: socket.userId, groupId: gid } }
-          );
+        const uid = dataUserId || socket.userId;
+        if (uid) {
+          const groupIds = [...new Set(messages.filter(m => m.groupId).map(m => m.groupId))];
+          for (const gid of groupIds) {
+            await GroupMember.update(
+              { lastReadAt: new Date() },
+              { where: { userId: uid, groupId: gid } }
+            );
+          }
         }
 
         const bySender = {};
