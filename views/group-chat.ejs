@@ -143,14 +143,10 @@
         <input type="file" id="fileInput" accept="image/*,audio/*,video/*,application/*,text/*" style="display:none">
       </div>
       <div id="recordingBar" class="recording-bar" style="display:none">
-        <div class="recording-pulse"></div>
-        <div class="recording-waveform">
-          <span></span><span></span><span></span><span></span>
-          <span></span><span></span><span></span><span></span>
-        </div>
+        <div class="recording-dot"></div>
         <span class="recording-timer" id="recordingTimer">0:00</span>
-        <button type="button" class="btn-recording-cancel" id="cancelRecording" title="Cancel"><i class="fas fa-times"></i></button>
-        <button type="button" class="btn-recording-stop" id="stopRecording" title="Send"><i class="fas fa-check"></i></button>
+        <button type="button" class="btn-recording" id="cancelRecording" title="Cancel"><i class="fas fa-times"></i></button>
+        <button type="button" class="btn-recording btn-recording-send" id="stopRecording" title="Send"><i class="fas fa-check"></i></button>
       </div>
       <div class="chat-input-field">
         <textarea id="messageInput" rows="1" placeholder="Type a message... (@ to mention)" autocomplete="off"></textarea>
