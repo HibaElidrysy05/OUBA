@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= typeof title !== 'undefined' ? title : 'Ouba' %></title>
-  <link rel="stylesheet" href="/css/style.css?v=25">
+  <link rel="stylesheet" href="/css/style.css?v=26">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/img/icon.svg">
@@ -52,8 +52,14 @@
     <nav class="sidebar">
       <div class="sidebar-header">
         <a href="/" class="logo">
-          <span class="logo-icon">🌸</span>
-          <span class="logo-text">Ouba</span>
+          <% if (flagsString && flagsString['logo_url']) { %>
+            <img src="<%= flagsString['logo_url'] %>" class="logo-img" alt="Ouba">
+          <% } else if (flags && flags.logo_text_only) { %>
+            <span class="logo-text">Ouba</span>
+          <% } else { %>
+            <span class="logo-icon">🌸</span>
+            <span class="logo-text">Ouba</span>
+          <% } %>
         </a>
       </div>
       <div class="sidebar-user">

@@ -11,6 +11,10 @@ const FeatureFlag = sequelize.define('FeatureFlag', {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: true
+  },
+  stringValue: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 }, {
   timestamps: true

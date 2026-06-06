@@ -57,7 +57,12 @@ app.use(async (req, res, next) => {
   try {
     const FeatureFlag = require('./models/FeatureFlag');
     const allFlags = await FeatureFlag.findAll();
-    allFlags.forEach(f => { res.locals.flags[f.key] = f.value; });
+    const strMap = {};
+    allFlags.forEach(f => {
+      res.locals.flags[f.key] = f.value;
+      if (f.stringValue) strMap[f.key] = f.stringValue;
+    });
+    res.locals.flagsString = strMap;
   } catch (_) {}
   if (req.session.userId) {
     User.findByPk(req.session.userId, {

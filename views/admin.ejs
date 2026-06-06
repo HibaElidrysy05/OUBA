@@ -82,6 +82,44 @@
   </div>
 
   <div class="card" style="margin-top:24px">
+    <div class="card-header">
+      <h2><i class="fas fa-paint-roller"></i> Logo & Branding</h2>
+    </div>
+    <div class="card-body">
+      <div class="flag-list">
+        <div class="flag-item">
+          <div class="flag-info">
+            <strong>Text Only Logo</strong>
+            <span class="flag-desc">Hide the flower icon, show just "Ouba" text</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" class="flag-toggle" data-key="logo_text_only" <%= flags['logo_text_only'] ? 'checked' : '' %>>
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="flag-item" style="flex-direction:column;align-items:stretch;gap:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+            <div class="flag-info">
+              <strong>Custom Logo Image</strong>
+              <span class="flag-desc">Upload a PNG logo to replace the flower (max 2MB)</span>
+            </div>
+          </div>
+          <% if (flagsString && flagsString['logo_url']) { %>
+            <div style="display:flex;align-items:center;gap:12px">
+              <img src="<%= flagsString['logo_url'] %>" style="height:36px;border-radius:6px">
+              <button class="btn btn-sm" onclick="removeLogo()" style="background:#e74c3c;color:white;border:none;padding:4px 10px;border-radius:6px;cursor:pointer">Remove</button>
+            </div>
+          <% } %>
+          <div style="display:flex;gap:8px">
+            <input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp" style="flex:1;padding:6px;border:1px solid var(--pink-light);border-radius:8px;font-size:13px">
+            <button class="btn btn-sm btn-primary" onclick="uploadLogo()" style="padding:6px 16px">Upload</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:24px">
     <div class="card-header" onclick="toggleCard(this)" style="cursor:pointer">
       <h2><i class="fas fa-bug"></i> Push Debug</h2>
       <span style="font-size:12px;color:var(--text-light)">tap to toggle</span>
@@ -219,6 +257,34 @@ async function sendTestPush() {
     var d = await r.json();
     el.textContent = JSON.stringify(d, null, 2);
   } catch(e) { el.textContent = 'Error: ' + e.message; }
+}
+
+function uploadLogo() {
+  var input = document.getElementById('logoInput');
+  if (!input.files || !input.files[0]) return alert('Select a file first');
+  var fd = new FormData();
+  fd.append('logo', input.files[0]);
+  fetch('/admin/api/logo', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) { location.reload(); }
+      else { alert(data.error || 'Upload failed'); }
+    })
+    .catch(function() { alert('Upload failed'); });
+}
+
+function removeLogo() {
+  if (!confirm('Remove custom logo?')) return;
+  fetch('/admin/api/flags', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: 'logo_url', stringValue: '' })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) { location.reload(); }
+      else { alert('Failed'); }
+    });
 }
 </script>
 <%- include('partials/footer') %>

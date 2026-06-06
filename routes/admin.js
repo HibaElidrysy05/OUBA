@@ -17,12 +17,44 @@ router.get('/api/flags', isAdmin, async (req, res) => {
 
 router.post('/api/flags', isAdmin, async (req, res) => {
   try {
-    const { key, value } = req.body;
+    const { key, value, stringValue } = req.body;
     if (!key) return res.status(400).json({ error: 'Key required' });
-    await FeatureFlag.upsert({ key, value: !!value });
+    const update = { key };
+    if (typeof value !== 'undefined') update.value = !!value;
+    if (typeof stringValue !== 'undefined') update.stringValue = stringValue;
+    await FeatureFlag.upsert(update);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update flag' });
+  }
+});
+
+router.post('/api/logo', isAdmin, async (req, res) => {
+  try {
+    if (!req.files || !req.files.logo) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    const file = req.files.logo;
+    if (!file.mimetype.startsWith('image/')) {
+      return res.status(400).json({ error: 'Only images allowed' });
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Max 2MB' });
+    }
+    const streamifier = require('streamifier');
+    const cloudinary = require('../config/cloudinary');
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: 'ouba', public_id: 'custom_logo', overwrite: true },
+        (err, r) => err ? reject(err) : resolve(r)
+      );
+      streamifier.createReadStream(file.data).pipe(stream);
+    });
+    await FeatureFlag.upsert({ key: 'logo_url', stringValue: result.secure_url });
+    res.json({ success: true, url: result.secure_url });
+  } catch (error) {
+    console.error('Logo upload error:', error);
+    res.status(500).json({ error: 'Upload failed' });
   }
 });
 
@@ -39,13 +71,18 @@ router.get('/', isAdmin, async (req, res) => {
     });
     const flags = await FeatureFlag.findAll();
     const flagsMap = {};
-    flags.forEach(f => { flagsMap[f.key] = f.value; });
+    const flagsString = {};
+    flags.forEach(f => {
+      flagsMap[f.key] = f.value;
+      if (f.stringValue) flagsString[f.key] = f.stringValue;
+    });
 
     res.render('admin', {
       title: 'Admin Panel - Ouba',
       user,
       users,
       flags: flagsMap,
+      flagsString,
       error: null,
       success: null
     });
@@ -59,6 +96,7 @@ router.get('/', isAdmin, async (req, res) => {
       user,
       users: [],
       flags: {},
+      flagsString: {},
       error: 'Failed to load users',
       success: null
     });
