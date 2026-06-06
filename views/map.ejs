@@ -6,11 +6,6 @@
       <span class="toggle-track"></span>
       <span class="toggle-label"><i class="fas fa-map-marker-alt map-location-icon" style="color:#FFB6C1"></i> Share my location</span>
     </label>
-    <label class="toggle-switch" id="followToggle" style="margin-left:8px">
-      <input type="checkbox" id="followMe">
-      <span class="toggle-track"></span>
-      <span class="toggle-label"><i class="fas fa-crosshairs" style="color:#FFB6C1"></i> Follow</span>
-    </label>
     <span class="friend-counter">
       <i class="fas fa-users"></i>
       <span><span class="count" id="friendCount"><%= friends.filter(function(f){return f.shareLocation && f.latitude && f.longitude}).length %></span> friends nearby</span>
@@ -244,7 +239,6 @@ if (bounds.length > 0) {
 }
 updateFriendCount();
 
-var followMe = false;
 function updateUserLocation(pos) {
   var lat = pos.coords.latitude;
   var lng = pos.coords.longitude;
@@ -264,10 +258,7 @@ function updateUserLocation(pos) {
     userMarker.setLatLng([lat, lng]);
     accuracyCircle.setLatLng([lat, lng]);
     accuracyCircle.setRadius(acc);
-    if (followMe || document.getElementById('followMe').checked) {
-      followMe = true;
-      map.setView([lat, lng], map.getZoom());
-    }
+    map.setView([lat, lng], map.getZoom());
   }
   if (document.getElementById('shareToggle').checked) {
     fetch('/api/location/update', {
@@ -312,7 +303,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       } else {
         if (watchingId) { navigator.geolocation.clearWatch(watchingId); watchingId = null; }
-        followMe = false;
         if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
         fetch('/api/location/update', {
           method: 'POST',
@@ -328,16 +318,6 @@ document.addEventListener('DOMContentLoaded', function() {
       navigator.geolocation.getCurrentPosition(updateUserLocation, function(){});
       watchingId = navigator.geolocation.watchPosition(updateUserLocation, function(){}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
     }
-  }
-  var followToggle = document.getElementById('followMe');
-  if (followToggle) {
-    followToggle.addEventListener('change', function() {
-      followMe = this.checked;
-      if (followMe && userMarker) {
-        var pos = userMarker.getLatLng();
-        map.setView([pos.lat, pos.lng], map.getZoom());
-      }
-    });
   }
 });
 </script>
