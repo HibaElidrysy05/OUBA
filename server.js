@@ -66,7 +66,7 @@ app.use(async (req, res, next) => {
   } catch (_) {}
   if (req.session.userId) {
     User.findByPk(req.session.userId, {
-      attributes: ['id', 'username', 'displayName', 'profilePic', 'bio', 'role']
+      attributes: ['id', 'username', 'displayName', 'profilePic', 'bio', 'role', 'gender']
     })
       .then(user => {
         res.locals.currentUser = user;
