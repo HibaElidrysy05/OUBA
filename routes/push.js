@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { webpush, vapidPublicKey } = require('../config/push');
 const auth = require('../middleware/auth');
+const isAdmin = require('../middleware/admin');
 
 router.use(auth);
 
@@ -44,25 +45,11 @@ router.post('/push-unsubscribe', async (req, res) => {
   }
 });
 
-router.get('/push/debug', async (req, res) => {
-  try {
-    const userId = req.session.userId;
-    const { PushSubscription } = require('../models');
-    const subs = await PushSubscription.findAll({ where: { userId } });
-    const { User } = require('../models');
-    const user = await User.findByPk(userId);
-    res.render('push-debug', {
-      title: 'Push Debug - Ouba',
-      user,
-      subs: subs.map(s => ({ id: s.id, endpoint: s.endpoint.substring(0, 80) + '...', createdAt: s.createdAt })),
-      vapidKey: vapidPublicKey
-    });
-  } catch (err) {
-    res.status(500).send('Error: ' + err.message);
-  }
+router.get('/push/debug', isAdmin, (req, res) => {
+  res.redirect('/admin');
 });
 
-router.post('/push/test', async (req, res) => {
+router.post('/push/test', isAdmin, async (req, res) => {
   try {
     const userId = req.session.userId;
     const { PushSubscription } = require('../models');
