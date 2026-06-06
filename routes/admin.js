@@ -66,7 +66,7 @@ router.get('/', isAdmin, async (req, res) => {
     if (!user) return res.redirect('/login');
 
     const users = await User.findAll({
-      attributes: ['id', 'username', 'email', 'displayName', 'role', 'createdAt'],
+      attributes: ['id', 'username', 'email', 'displayName', 'gender', 'role', 'createdAt'],
       order: [['createdAt', 'DESC']]
     });
     const flags = await FeatureFlag.findAll();

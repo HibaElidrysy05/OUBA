@@ -18,10 +18,14 @@ router.get('/register', (req, res) => {
 
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password, confirmPassword } = req.body;
+    const { username, email, password, confirmPassword, gender } = req.body;
 
     if (!username || !email || !password || !confirmPassword) {
       return res.render('register', { title: 'Register - Ouba', error: 'All fields are required' });
+    }
+
+    if (!['female', 'male', 'other'].includes(gender)) {
+      return res.render('register', { title: 'Register - Ouba', error: 'Please select a gender' });
     }
 
     if (password !== confirmPassword) {
@@ -42,7 +46,7 @@ router.post('/register', async (req, res) => {
       return res.render('register', { title: 'Register - Ouba', error: 'Username or email already exists' });
     }
 
-    const user = await User.create({ username, email, password, displayName: username });
+    const user = await User.create({ username, email, password, displayName: username, gender });
 
     req.session.userId = user.id;
     res.redirect('/');

@@ -14,6 +14,7 @@
               <th style="padding:10px;text-align:left">Username</th>
               <th style="padding:10px;text-align:left">Email</th>
               <th style="padding:10px;text-align:left">Display Name</th>
+              <th style="padding:10px;text-align:center">Gender</th>
               <th style="padding:10px;text-align:left">Role</th>
               <th style="padding:10px;text-align:left">Joined</th>
               <th style="padding:10px;text-align:center">Actions</th>
@@ -25,6 +26,12 @@
                 <td style="padding:10px">@<%= u.username %></td>
                 <td style="padding:10px"><%= u.email %></td>
                 <td style="padding:10px"><%= u.displayName || '-' %></td>
+                <td style="padding:10px;text-align:center">
+                  <% if (u.gender === 'male') { %>♂<span style="font-size:11px;color:#5B8DEF;margin-left:4px">Boy</span>
+                  <% } else if (u.gender === 'other') { %>🌈<span style="font-size:11px;color:#A855F7;margin-left:4px">Other</span>
+                  <% } else { %>♀<span style="font-size:11px;color:#FFB6C1;margin-left:4px">Girl</span>
+                  <% } %>
+                </td>
                 <td style="padding:10px">
                   <% if (u.id === user.id) { %>
                     <span class="badge badge-admin"><%= u.role %></span>
@@ -67,15 +74,11 @@
             <span class="toggle-track"></span>
           </label>
         </div>
-        <div class="flag-item">
+        <div class="flag-item" style="opacity:0.6">
           <div class="flag-info">
-            <strong>Neutral Theme</strong>
-            <span class="flag-desc">Switch from pink to a neutral blue theme for all users</span>
+            <strong>Themes</strong>
+            <span class="flag-desc">Theme is now per-user based on their gender (♀ Pink / ♂ Blue / 🌈 Rainbow)</span>
           </div>
-          <label class="toggle-switch">
-            <input type="checkbox" class="flag-toggle" data-key="neutral_theme" <%= flags['neutral_theme'] ? 'checked' : '' %>>
-            <span class="toggle-track"></span>
-          </label>
         </div>
       </div>
     </div>

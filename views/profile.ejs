@@ -41,6 +41,30 @@
         <span class="char-count"><%= (user.bio || '').length %>/200</span>
       </div>
 
+      <div class="form-group">
+        <label><i class="fas fa-venus-mars"></i> Gender <span class="gender-hint">(changes your theme)</span></label>
+        <div class="gender-selector">
+          <label class="gender-option" data-gender="female">
+            <input type="radio" name="gender" value="female" <%= user.gender === 'female' ? 'checked' : '' %>>
+            <span class="gender-icon">♀</span>
+            <span class="gender-label">Girl</span>
+            <span class="gender-theme-tag pink-tag">Pink</span>
+          </label>
+          <label class="gender-option" data-gender="male">
+            <input type="radio" name="gender" value="male" <%= user.gender === 'male' ? 'checked' : '' %>>
+            <span class="gender-icon">♂</span>
+            <span class="gender-label">Boy</span>
+            <span class="gender-theme-tag blue-tag">Blue</span>
+          </label>
+          <label class="gender-option" data-gender="other">
+            <input type="radio" name="gender" value="other" <%= user.gender === 'other' ? 'checked' : '' %>>
+            <span class="gender-icon">🌈</span>
+            <span class="gender-label">Other</span>
+            <span class="gender-theme-tag rainbow-tag">Rainbow</span>
+          </label>
+        </div>
+      </div>
+
       <div class="form-group" style="margin-top:4px">
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
           <input type="checkbox" id="shareLocation" <%= user.shareLocation ? 'checked' : '' %> style="width:18px;height:18px;accent-color:#FFB6C1;cursor:pointer">

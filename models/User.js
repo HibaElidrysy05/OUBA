@@ -38,6 +38,10 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     defaultValue: 'user'
   },
+  gender: {
+    type: DataTypes.STRING(10),
+    defaultValue: 'female'
+  },
   shareLocation: {
     type: DataTypes.BOOLEAN,
     defaultValue: false

@@ -21,7 +21,7 @@ router.get('/profile', async (req, res) => {
 
 router.post('/profile', async (req, res) => {
   try {
-    const { username, displayName, bio, currentPassword, newPassword } = req.body;
+    const { username, displayName, bio, currentPassword, newPassword, gender } = req.body;
     const user = await User.findByPk(req.session.userId);
 
     const updates = {};
@@ -42,6 +42,7 @@ router.post('/profile', async (req, res) => {
 
     if (displayName) updates.displayName = displayName;
     if (bio !== undefined) updates.bio = bio;
+    if (['female', 'male', 'other'].includes(gender)) updates.gender = gender;
 
     if (currentPassword && newPassword) {
       const isMatch = await user.comparePassword(currentPassword);

@@ -34,6 +34,29 @@
         <label for="confirmPassword"><i class="fas fa-check-circle"></i> Confirm Password</label>
         <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm your password" required>
       </div>
+      <div class="form-group">
+        <label><i class="fas fa-venus-mars"></i> Gender <span class="gender-hint">(chooses your theme)</span></label>
+        <div class="gender-selector">
+          <label class="gender-option" data-gender="female">
+            <input type="radio" name="gender" value="female" checked>
+            <span class="gender-icon">♀</span>
+            <span class="gender-label">Girl</span>
+            <span class="gender-theme-tag pink-tag">Pink</span>
+          </label>
+          <label class="gender-option" data-gender="male">
+            <input type="radio" name="gender" value="male">
+            <span class="gender-icon">♂</span>
+            <span class="gender-label">Boy</span>
+            <span class="gender-theme-tag blue-tag">Blue</span>
+          </label>
+          <label class="gender-option" data-gender="other">
+            <input type="radio" name="gender" value="other">
+            <span class="gender-icon">🌈</span>
+            <span class="gender-label">Other</span>
+            <span class="gender-theme-tag rainbow-tag">Rainbow</span>
+          </label>
+        </div>
+      </div>
       <button type="submit" class="btn btn-primary btn-full">Create Account <i class="fas fa-heart"></i></button>
     </form>
     <div class="auth-footer">
