@@ -496,46 +496,31 @@ const stopRecordingBtn = document.getElementById('stopRecording');
 const cancelRecordingBtn = document.getElementById('cancelRecording');
 
 micBtn.addEventListener('click', async function() {
-  if (mediaRecorder && mediaRecorder.state === 'recording') {
-    return;
-  }
+  if (mediaRecorder && mediaRecorder.state === 'recording') return;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm' });
     audioChunks = [];
     mediaRecorder.ondataavailable = function(e) {
-      if (e.data.size > 0) audioChunks.push(e.data);
+      if (e.data && e.data.size > 0) audioChunks.push(e.data);
     };
     mediaRecorder.onstop = function() {
       stream.getTracks().forEach(function(t) { t.stop(); });
+      // Build blob only after final ondataavailable has fired
+      if (audioChunks.length === 0) { showToast('No audio recorded', 'error'); return; }
+      var blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+      uploadAndSendAudio(blob);
     };
-    mediaRecorder.start();
+    mediaRecorder.start(100); // timeslice 100ms — fires ondataavailable periodically
     micBtn.style.display = 'none';
     recordingBar.style.display = 'flex';
     recordingSeconds = 0;
     updateRecTimer();
-    recordingTimer = setInterval(function() {
-      recordingSeconds++;
-      updateRecTimer();
-    }, 1000);
-  } catch (err) {
-    showToast('Microphone access denied', 'error');
-  }
+    recordingTimer = setInterval(function() { recordingSeconds++; updateRecTimer(); }, 1000);
+  } catch (err) { showToast('Microphone access denied', 'error'); }
 });
 
-function updateRecTimer() {
-  var m = Math.floor(recordingSeconds / 60);
-  var s = recordingSeconds % 60;
-  recordingTimerEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
-}
-
-stopRecordingBtn.addEventListener('click', function() {
-  if (!mediaRecorder) return;
-  clearInterval(recordingTimer);
-  mediaRecorder.stop();
-  micBtn.style.display = '';
-  recordingBar.style.display = 'none';
-  var blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+function uploadAndSendAudio(blob) {
   var fd = new FormData();
   fd.append('file', blob, 'recording.webm');
   fetch('/upload/file', { method: 'POST', body: fd })
@@ -544,24 +529,38 @@ stopRecordingBtn.addEventListener('click', function() {
       if (data.success) {
         sendMessageWithFile(data.fileUrl, data.fileType, data.fileName, data.fileSize);
       } else {
-        showToast('Upload failed', 'error');
+        showToast(data.error || 'Upload failed', 'error');
       }
     })
-    .catch(function() {
-      showToast('Upload failed', 'error');
-    });
+    .catch(function(err) { showToast('Upload failed: ' + err.message, 'error'); });
+}
+
+function updateRecTimer() {
+  var m = Math.floor(recordingSeconds / 60);
+  var s = recordingSeconds % 60;
+  recordingTimerEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+stopRecordingBtn.addEventListener('click', function() {
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+  clearInterval(recordingTimer);
+  mediaRecorder.stop(); // triggers ondataavailable → onstop → upload
+  micBtn.style.display = '';
+  recordingBar.style.display = 'none';
 });
 
 cancelRecordingBtn.addEventListener('click', function() {
-  if (!mediaRecorder) return;
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
   clearInterval(recordingTimer);
+  audioChunks = [];
   mediaRecorder.ondataavailable = null;
   mediaRecorder.onstop = null;
-  mediaRecorder.stop();
-  mediaRecorder.stream && mediaRecorder.stream.getTracks().forEach(function(t) { t.stop(); });
+  try { mediaRecorder.stop(); } catch(e) {}
+  if (mediaRecorder.stream && mediaRecorder.stream.getTracks) {
+    mediaRecorder.stream.getTracks().forEach(function(t) { t.stop(); });
+  }
   micBtn.style.display = '';
   recordingBar.style.display = 'none';
-  audioChunks = [];
 });
 
 function sendMessageWithFile(fileUrl, fileType, fileName, fileSize) {

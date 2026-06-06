@@ -760,9 +760,34 @@ micBtn.addEventListener('click', async function() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm' });
     audioChunks = [];
-    mediaRecorder.ondataavailable = function(e) { if (e.data.size > 0) audioChunks.push(e.data); };
-    mediaRecorder.onstop = function() { stream.getTracks().forEach(function(t) { t.stop(); }); };
-    mediaRecorder.start();
+    mediaRecorder.ondataavailable = function(e) { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = function() {
+      stream.getTracks().forEach(function(t) { t.stop(); });
+      if (audioChunks.length === 0) { showToast('No audio recorded', 'error'); return; }
+      var blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+      var fd = new FormData();
+      fd.append('file', blob, 'recording.webm');
+      fetch('/upload/file', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) {
+            clearReply();
+            socket.emit('send-group-message', {
+              senderId: userId,
+              groupId,
+              content: '',
+              fileUrl: data.fileUrl,
+              fileType: data.fileType,
+              fileName: data.fileName,
+              fileSize: data.fileSize,
+              replyToId: replyToId || undefined
+            });
+            replyToId = null;
+          } else { showToast(data.error || 'Upload failed', 'error'); }
+        })
+        .catch(function(err) { showToast('Upload failed: ' + err.message, 'error'); });
+    };
+    mediaRecorder.start(100); // timeslice 100ms
     micBtn.style.display = 'none';
     recordingBar.style.display = 'flex';
     recordingSeconds = 0;
@@ -778,45 +803,25 @@ function updateRecTimer() {
 }
 
 stopRecordingBtn.addEventListener('click', function() {
-  if (!mediaRecorder) return;
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
   clearInterval(recordingTimer);
   mediaRecorder.stop();
   micBtn.style.display = '';
   recordingBar.style.display = 'none';
-  var blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
-  var fd = new FormData();
-  fd.append('file', blob, 'recording.webm');
-  fetch('/upload/file', { method: 'POST', body: fd })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.success) {
-        clearReply();
-        socket.emit('send-group-message', {
-          senderId: userId,
-          groupId,
-          content: '',
-          fileUrl: data.fileUrl,
-          fileType: data.fileType,
-          fileName: data.fileName,
-          fileSize: data.fileSize,
-          replyToId: replyToId || undefined
-        });
-        replyToId = null;
-      } else { showToast('Upload failed', 'error'); }
-    })
-    .catch(function() { showToast('Upload failed', 'error'); });
 });
 
 cancelRecordingBtn.addEventListener('click', function() {
-  if (!mediaRecorder) return;
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
   clearInterval(recordingTimer);
+  audioChunks = [];
   mediaRecorder.ondataavailable = null;
   mediaRecorder.onstop = null;
-  mediaRecorder.stop();
-  mediaRecorder.stream && mediaRecorder.stream.getTracks().forEach(function(t) { t.stop(); });
+  try { mediaRecorder.stop(); } catch(e) {}
+  if (mediaRecorder.stream && mediaRecorder.stream.getTracks) {
+    mediaRecorder.stream.getTracks().forEach(function(t) { t.stop(); });
+  }
   micBtn.style.display = '';
   recordingBar.style.display = 'none';
-  audioChunks = [];
 });
 </script>
 <%- include('partials/footer') %>

@@ -31,6 +31,10 @@ router.post('/file', async (req, res) => {
 
     const file = req.files.file;
 
+    if (!file.data || file.data.length === 0) {
+      return res.status(400).json({ error: 'Empty file' });
+    }
+
     const allowedTypes = [
       'image/jpeg', 'image/png', 'image/gif', 'image/webp',
       'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4',
