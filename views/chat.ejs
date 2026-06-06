@@ -163,7 +163,16 @@
         <button type="button" class="btn-input" id="fileBtn" title="Attach file">
           <i class="fas fa-paperclip"></i>
         </button>
+        <button type="button" class="btn-input" id="micBtn" title="Record audio">
+          <i class="fas fa-microphone"></i>
+        </button>
         <input type="file" id="fileInput" accept="image/*,audio/*,video/*,application/*,text/*" style="display:none">
+      </div>
+      <div id="recordingBar" class="recording-bar" style="display:none">
+        <div class="recording-pulse"></div>
+        <span class="recording-timer" id="recordingTimer">0:00</span>
+        <button type="button" class="btn-recording-cancel" id="cancelRecording" title="Cancel"><i class="fas fa-times"></i></button>
+        <button type="button" class="btn-recording-stop" id="stopRecording" title="Send"><i class="fas fa-check"></i></button>
       </div>
       <div class="chat-input-field">
         <textarea id="messageInput" rows="1" placeholder="Type a message..." autocomplete="off"></textarea>
@@ -473,6 +482,108 @@ function showToast(msg, type = 'success') {
     toast.classList.remove('show');
     setTimeout(() => toast.remove(), 300);
   }, 3000);
+}
+
+// Audio recording
+let mediaRecorder = null;
+let audioChunks = [];
+let recordingTimer = null;
+let recordingSeconds = 0;
+const micBtn = document.getElementById('micBtn');
+const recordingBar = document.getElementById('recordingBar');
+const recordingTimerEl = document.getElementById('recordingTimer');
+const stopRecordingBtn = document.getElementById('stopRecording');
+const cancelRecordingBtn = document.getElementById('cancelRecording');
+
+micBtn.addEventListener('click', async function() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm' });
+    audioChunks = [];
+    mediaRecorder.ondataavailable = function(e) {
+      if (e.data.size > 0) audioChunks.push(e.data);
+    };
+    mediaRecorder.onstop = function() {
+      stream.getTracks().forEach(function(t) { t.stop(); });
+    };
+    mediaRecorder.start();
+    micBtn.style.display = 'none';
+    recordingBar.style.display = 'flex';
+    recordingSeconds = 0;
+    updateRecTimer();
+    recordingTimer = setInterval(function() {
+      recordingSeconds++;
+      updateRecTimer();
+    }, 1000);
+  } catch (err) {
+    showToast('Microphone access denied', 'error');
+  }
+});
+
+function updateRecTimer() {
+  var m = Math.floor(recordingSeconds / 60);
+  var s = recordingSeconds % 60;
+  recordingTimerEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+stopRecordingBtn.addEventListener('click', function() {
+  if (!mediaRecorder) return;
+  clearInterval(recordingTimer);
+  mediaRecorder.stop();
+  micBtn.style.display = '';
+  recordingBar.style.display = 'none';
+  var blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+  var fd = new FormData();
+  fd.append('file', blob, 'recording.webm');
+  fetch('/upload/file', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        sendMessageWithFile(data.fileUrl, data.fileType, data.fileName, data.fileSize);
+      } else {
+        showToast('Upload failed', 'error');
+      }
+    })
+    .catch(function() {
+      showToast('Upload failed', 'error');
+    });
+});
+
+cancelRecordingBtn.addEventListener('click', function() {
+  if (!mediaRecorder) return;
+  clearInterval(recordingTimer);
+  mediaRecorder.ondataavailable = null;
+  mediaRecorder.onstop = null;
+  mediaRecorder.stop();
+  mediaRecorder.stream && mediaRecorder.stream.getTracks().forEach(function(t) { t.stop(); });
+  micBtn.style.display = '';
+  recordingBar.style.display = 'none';
+  audioChunks = [];
+});
+
+function sendMessageWithFile(fileUrl, fileType, fileName, fileSize) {
+  var replyParam = replyToId || null;
+  if (fileUrl) {
+    if (replyParam && replyPreview) {
+      replyPreview.style.display = 'none';
+      replyToId = null;
+      replyTargetName.textContent = '';
+      replyTargetText.textContent = '';
+    }
+    socket.emit('send-message', {
+      senderId: userId,
+      receiverId: friendId,
+      content: '',
+      fileUrl: fileUrl,
+      fileType: fileType,
+      fileName: fileName,
+      fileSize: fileSize,
+      replyToId: replyParam
+    });
+  }
 }
 </script>
 <%- include('partials/footer') %>
