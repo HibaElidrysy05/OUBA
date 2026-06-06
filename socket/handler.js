@@ -243,6 +243,42 @@ module.exports = (io) => {
       }
     });
 
+    socket.on('location-update', async (data) => {
+      try {
+        const userId = socket.userId;
+        if (!userId) return;
+        const user = await User.findByPk(userId, { attributes: ['id', 'username', 'displayName', 'profilePic'] });
+        if (!user) return;
+        const friends = await user.getFriends({ attributes: ['id'] });
+        friends.forEach(f => {
+          io.to('user:' + f.id).emit('friend-location', {
+            userId,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            name: user.displayName || user.username,
+            pic: user.profilePic
+          });
+        });
+      } catch (err) {
+        console.error('Location update error:', err);
+      }
+    });
+
+    socket.on('location-stopped', async () => {
+      try {
+        const userId = socket.userId;
+        if (!userId) return;
+        const user = await User.findByPk(userId);
+        if (!user) return;
+        const friends = await user.getFriends({ attributes: ['id'] });
+        friends.forEach(f => {
+          io.to('user:' + f.id).emit('friend-location-stopped', { userId });
+        });
+      } catch (err) {
+        console.error('Location stop error:', err);
+      }
+    });
+
     socket.on('disconnect', () => {
       if (socket.userId) {
         const uid = socket.userId;

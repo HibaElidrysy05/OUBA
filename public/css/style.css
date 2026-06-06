@@ -2361,3 +2361,78 @@ html, body {
 @media (min-width: 769px) {
   #installBanner { display: none !important; }
 }
+
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.toggle-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-track {
+  width: 44px;
+  height: 24px;
+  background: #ddd;
+  border-radius: 12px;
+  transition: 0.3s;
+  position: relative;
+  flex-shrink: 0;
+}
+.toggle-track:after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  top: 2px;
+  left: 2px;
+  transition: 0.3s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+.toggle-switch input:checked + .toggle-track {
+  background: linear-gradient(135deg, #FFB6C1, #f8a5c2);
+}
+.toggle-switch input:checked + .toggle-track:after {
+  left: 22px;
+}
+.toggle-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  flex-wrap: wrap;
+}
+.friend-counter {
+  font-size: 13px;
+  color: var(--text-light);
+  background: #FFF5F7;
+  padding: 6px 14px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.friend-counter i {
+  color: #FFB6C1;
+}
+.friend-counter .count {
+  font-weight: 700;
+  color: #FFB6C1;
+}

@@ -1,13 +1,14 @@
 <%- include('partials/header', { title: title, activeNav: 'map' }) %>
 <div class="map-page">
-  <div class="map-toolbar" style="display:flex;align-items:center;gap:12px;padding:12px 0;flex-wrap:wrap">
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:500">
-      <input type="checkbox" id="shareToggle" <%= user.shareLocation ? 'checked' : '' %> style="width:18px;height:18px;accent-color:#FFB6C1;cursor:pointer">
-      <i class="fas fa-map-marker-alt" style="color:#FFB6C1"></i> Share my location
+  <div class="map-toolbar">
+    <label class="toggle-switch">
+      <input type="checkbox" id="shareToggle" <%= user.shareLocation ? 'checked' : '' %>>
+      <span class="toggle-track"></span>
+      <span class="toggle-label"><i class="fas fa-map-marker-alt" style="color:#FFB6C1"></i> Share my location</span>
     </label>
-    <span style="font-size:12px;color:var(--text-light)">
-      <i class="fas fa-users" style="color:#FFB6C1"></i>
-      <%= friends.filter(function(f){return f.shareLocation && f.latitude && f.longitude}).length %> friends nearby
+    <span class="friend-counter">
+      <i class="fas fa-users"></i>
+      <span><span class="count" id="friendCount"><%= friends.filter(function(f){return f.shareLocation && f.latitude && f.longitude}).length %></span> friends nearby</span>
     </span>
   </div>
   <div class="map-container">
@@ -39,9 +40,7 @@
   color: #5a3d4a;
   margin: 8px 12px;
 }
-.leaflet-popup-tip {
-  box-shadow: none !important;
-}
+.leaflet-popup-tip { box-shadow: none !important; }
 </style>
 <script>
 var map = L.map('map', { zoomControl: true }).setView([0, 0], 2);
@@ -51,25 +50,66 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
 }).addTo(map);
 
 var bounds = [];
-var markers = [];
+var markers = {};
+var userMarker = null;
+var watchingId = null;
+var currentUserId = '<%= user.id %>';
 
+function friendIcon(pic, name) {
+  var initial = (name || '?')[0].toUpperCase();
+  if (pic) {
+    return '<img src="' + pic + '" style="width:40px;height:40px;border-radius:50%;border:3px solid #FFB6C1;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.15)">';
+  }
+  return '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#FFB6C1,#f8a5c2);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px;border:3px solid #f8a5c2;box-shadow:0 2px 8px rgba(0,0,0,0.15)">' + initial + '</div>';
+}
+
+function userIconHtml() {
+  return '<div style="position:relative"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FF4081,#ff6b9d);display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:3px solid white;box-shadow:0 2px 12px rgba(255,64,129,0.4)"><i class="fas fa-user"></i></div><div style="width:8px;height:8px;border-radius:50%;background:#FF4081;margin:2px auto 0;opacity:0.6"></div></div>';
+}
+
+function addFriendMarker(id, lat, lng, name, pic) {
+  if (markers[id]) {
+    markers[id].setLatLng([lat, lng]);
+    return;
+  }
+  var icon = L.divIcon({
+    html: friendIcon(pic, name),
+    className: '',
+    iconSize: [40, 40],
+    iconAnchor: [20, 20]
+  });
+  var marker = L.marker([lat, lng], { icon: icon }).addTo(map);
+  marker.bindPopup('<div style="text-align:center"><b>' + name + '</b></div>');
+  markers[id] = marker;
+  bounds.push([lat, lng]);
+  if (Object.keys(markers).length === 1) {
+    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+  }
+}
+
+function removeFriendMarker(id) {
+  if (markers[id]) {
+    map.removeLayer(markers[id]);
+    delete markers[id];
+  }
+}
+
+function updateFriendCount() {
+  var el = document.getElementById('friendCount');
+  if (el) el.textContent = Object.keys(markers).length;
+}
+
+// Initial friend markers from server
 <% if (friends && friends.length > 0) { %>
   <% friends.forEach(function(f) { %>
     <% if (f.shareLocation && f.latitude && f.longitude) { %>
-      (function() {
-        var lat = <%= f.latitude %>;
-        var lng = <%= f.longitude %>;
-        var name = '<%= (f.displayName || f.username).replace(/'/g, "\\'") %>';
-        var pic = '<%= f.profilePic || "" %>';
-        var iconHtml = pic
-          ? '<img src="' + pic + '" style="width:40px;height:40px;border-radius:50%;border:3px solid #FFB6C1;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.15)">'
-          : '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#FFB6C1,#f8a5c2);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px;border:3px solid #f8a5c2;box-shadow:0 2px 8px rgba(0,0,0,0.15)">' + name[0].toUpperCase() + '</div>';
-        var icon = L.divIcon({ html: iconHtml, className: '', iconSize: [40, 40], iconAnchor: [20, 20] });
-        var marker = L.marker([lat, lng], { icon: icon }).addTo(map);
-        marker.bindPopup('<div style="text-align:center"><b>' + name + '</b></div>');
-        markers.push(marker);
-        bounds.push([lat, lng]);
-      })();
+      addFriendMarker(
+        '<%= f.id %>',
+        <%= f.latitude %>,
+        <%= f.longitude %>,
+        '<%= (f.displayName || f.username).replace(/'/g, "\\'") %>',
+        '<%= f.profilePic || "" %>'
+      );
     <% } %>
   <% }); %>
 <% } %>
@@ -77,33 +117,47 @@ var markers = [];
 if (bounds.length > 0) {
   map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
 }
+updateFriendCount();
 
-var userMarker = null;
 function updateUserLocation(pos) {
   var lat = pos.coords.latitude;
   var lng = pos.coords.longitude;
   if (!userMarker) {
-    var userIcon = L.divIcon({
-      html: '<div style="position:relative"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FF4081,#ff6b9d);display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:3px solid white;box-shadow:0 2px 12px rgba(255,64,129,0.4)"><i class="fas fa-user"></i></div><div style="width:8px;height:8px;border-radius:50%;background:#FF4081;margin:2px auto 0;opacity:0.6"></div></div>',
-      className: '', iconSize: [28, 38], iconAnchor: [14, 38]
+    var icon = L.divIcon({
+      html: userIconHtml(),
+      className: '',
+      iconSize: [28, 38],
+      iconAnchor: [14, 38]
     });
-    userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map);
+    userMarker = L.marker([lat, lng], { icon: icon }).addTo(map);
     userMarker.bindPopup('<div style="text-align:center"><b>You</b></div>');
     map.setView([lat, lng], 12);
   } else {
     userMarker.setLatLng([lat, lng]);
   }
-  if (typeof currentUserId !== 'undefined' && document.getElementById('shareToggle') && document.getElementById('shareToggle').checked) {
+  if (document.getElementById('shareToggle').checked) {
     fetch('/api/location/update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ latitude: lat, longitude: lng, shareLocation: true })
     }).catch(function(){});
+    if (window.appSocket && window.appSocket.connected) {
+      window.appSocket.emit('location-update', { latitude: lat, longitude: lng });
+    }
   }
 }
 
-var currentUserId = '<%= user.id %>';
-var watchingId = null;
+// Socket real-time
+if (window.appSocket) {
+  window.appSocket.on('friend-location', function(data) {
+    addFriendMarker(data.userId, data.latitude, data.longitude, data.name, data.pic);
+    updateFriendCount();
+  });
+  window.appSocket.on('friend-location-stopped', function(data) {
+    removeFriendMarker(data.userId);
+    updateFriendCount();
+  });
+}
 
 document.addEventListener('DOMContentLoaded', function() {
   var toggle = document.getElementById('shareToggle');
@@ -114,12 +168,12 @@ document.addEventListener('DOMContentLoaded', function() {
           navigator.geolocation.getCurrentPosition(function(pos) {
             updateUserLocation(pos);
             watchingId = navigator.geolocation.watchPosition(updateUserLocation, function(){}, { enableHighAccuracy: true });
-          }, function(err) {
-            alert('Could not get your location. Please enable location services in Settings.');
+          }, function() {
+            alert('Could not get your location. Enable location services in Settings.');
             toggle.checked = false;
           });
         } else {
-          alert('Geolocation is not supported on this device');
+          alert('Geolocation is not supported');
           toggle.checked = false;
         }
       } else {
@@ -130,6 +184,9 @@ document.addEventListener('DOMContentLoaded', function() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ shareLocation: false })
         }).catch(function(){});
+        if (window.appSocket && window.appSocket.connected) {
+          window.appSocket.emit('location-stopped');
+        }
       }
     });
     if (toggle.checked && navigator.geolocation) {
