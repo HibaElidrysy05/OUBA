@@ -316,6 +316,8 @@ messagesContainer.addEventListener('click', function(e) {
 });
 
 socket.on('new-group-message', function(msg) {
+  try {
+  console.log('new-group-message received:', msg && msg.id, !!msg);
   const isMine = msg.senderId === userId;
   const emptyState = messagesContainer.querySelector('.chat-empty');
   if (emptyState) emptyState.remove();
@@ -393,6 +395,7 @@ socket.on('new-group-message', function(msg) {
   if (!isMine && msg.id) {
     socket.emit('mark-read', { messageIds: [msg.id] });
   }
+  } catch(e) { console.error('new-group-message error:', e, msg); }
 });
 
 socket.on('group-typing', function(data) {
