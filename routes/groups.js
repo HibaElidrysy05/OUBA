@@ -82,6 +82,11 @@ router.get('/group/:id', async (req, res) => {
       include: [{ association: 'Groups' }]
     });
 
+    await GroupMember.update(
+      { lastReadAt: new Date() },
+      { where: { userId: req.session.userId, groupId: group.id } }
+    );
+
     res.render('group-chat', {
       title: `${group.name} - Ouba`,
       user,

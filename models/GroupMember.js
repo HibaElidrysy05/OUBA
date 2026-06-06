@@ -18,6 +18,10 @@ const GroupMember = sequelize.define('GroupMember', {
   role: {
     type: DataTypes.STRING(20),
     defaultValue: 'member'
+  },
+  lastReadAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   }
 }, {
   timestamps: true

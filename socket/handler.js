@@ -222,13 +222,21 @@ module.exports = (io) => {
       try {
         const messages = await Message.findAll({
           where: { id: messageIds },
-          attributes: ['id', 'senderId']
+          attributes: ['id', 'senderId', 'groupId']
         });
 
         await Message.update(
           { read: true },
           { where: { id: messageIds } }
         );
+
+        const groupIds = [...new Set(messages.filter(m => m.groupId).map(m => m.groupId))];
+        for (const gid of groupIds) {
+          await GroupMember.update(
+            { lastReadAt: new Date() },
+            { where: { userId: socket.userId, groupId: gid } }
+          );
+        }
 
         const bySender = {};
         messages.forEach(m => {

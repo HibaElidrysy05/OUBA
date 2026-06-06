@@ -65,17 +65,39 @@ app.use(async (req, res, next) => {
     res.locals.flagsString = strMap;
   } catch (_) {}
   if (req.session.userId) {
-    User.findByPk(req.session.userId, {
+    const user = await User.findByPk(req.session.userId, {
       attributes: ['id', 'username', 'displayName', 'profilePic', 'bio', 'role', 'gender']
-    })
-      .then(user => {
-        res.locals.currentUser = user;
-        next();
-      })
-      .catch(() => next());
-  } else {
-    next();
+    });
+    if (user) {
+      res.locals.currentUser = user;
+      const Message = require('./models/Message');
+      const GroupMember = require('./models/GroupMember');
+      const { Op } = require('sequelize');
+
+      const dmUnread = await Message.count({
+        where: { receiverId: user.id, read: false, groupId: null }
+      });
+
+      const memberships = await GroupMember.findAll({
+        where: { userId: user.id },
+        attributes: ['groupId', 'lastReadAt']
+      });
+      let groupUnread = 0;
+      for (const m of memberships) {
+        const cnt = await Message.count({
+          where: {
+            groupId: m.groupId,
+            senderId: { [Op.ne]: user.id },
+            createdAt: { [Op.gt]: m.lastReadAt }
+          }
+        });
+        groupUnread += cnt;
+      }
+      res.locals.dmUnread = dmUnread;
+      res.locals.groupUnread = groupUnread;
+    }
   }
+  next();
 });
 
 app.use('/', require('./routes/auth'));
