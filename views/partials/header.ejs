@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= typeof title !== 'undefined' ? title : 'Ouba' %></title>
-  <link rel="stylesheet" href="/css/style.css?v=26">
+  <link rel="stylesheet" href="/css/style.css?v=27">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/svg+xml" href="/img/icon.svg">
+  <link rel="icon" type="image/svg+xml" href="/img/icon.svg?v=2">
   <link rel="manifest" href="/manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -57,8 +57,7 @@
           <% } else if (flags && flags.logo_text_only) { %>
             <span class="logo-text">Ouba</span>
           <% } else { %>
-            <span class="logo-icon">🌸</span>
-            <span class="logo-text">Ouba</span>
+            <img src="/img/logo.svg" class="logo-svg" alt="Ouba">
           <% } %>
         </a>
       </div>

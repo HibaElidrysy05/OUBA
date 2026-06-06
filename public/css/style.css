@@ -67,7 +67,7 @@ html, body {
 .logo-icon {
   font-size: 28px;
 }
-.logo-img {
+.logo-img, .logo-svg {
   height: 36px;
   max-width: 160px;
   object-fit: contain;
