@@ -3,24 +3,51 @@
   <div class="map-toolbar" style="display:flex;align-items:center;gap:12px;padding:12px 0;flex-wrap:wrap">
     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:500">
       <input type="checkbox" id="shareToggle" <%= user.shareLocation ? 'checked' : '' %> style="width:18px;height:18px;accent-color:#FFB6C1;cursor:pointer">
-      Share my location
+      <i class="fas fa-map-marker-alt" style="color:#FFB6C1"></i> Share my location
     </label>
-    <span style="font-size:12px;color:var(--text-light);flex:1">
-      <%= friends.filter(function(f){return f.shareLocation && f.latitude && f.longitude}).length %> friends sharing location
+    <span style="font-size:12px;color:var(--text-light)">
+      <i class="fas fa-users" style="color:#FFB6C1"></i>
+      <%= friends.filter(function(f){return f.shareLocation && f.latitude && f.longitude}).length %> friends nearby
     </span>
   </div>
   <div class="map-container">
-    <div id="map" style="width:100%;height:calc(100vh - 200px);border-radius:12px;overflow:hidden"></div>
+    <div id="map" style="width:100%;height:calc(100vh - 200px);border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08)"></div>
   </div>
 </div>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+.leaflet-control-zoom a {
+  background: #FFE4EC !important;
+  color: #d4728a !important;
+  border-color: #FFB6C1 !important;
+  transition: 0.2s;
+}
+.leaflet-control-zoom a:hover {
+  background: #FFB6C1 !important;
+  color: white !important;
+}
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+}
+.leaflet-popup-content {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #5a3d4a;
+  margin: 8px 12px;
+}
+.leaflet-popup-tip {
+  box-shadow: none !important;
+}
+</style>
 <script>
-var map = L.map('map').setView([0, 0], 2);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+var map = L.map('map', { zoomControl: true }).setView([0, 0], 2);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   maxZoom: 19,
-  attribution: '&copy; OpenStreetMap'
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
 }).addTo(map);
 
 var bounds = [];
@@ -35,11 +62,11 @@ var markers = [];
         var name = '<%= (f.displayName || f.username).replace(/'/g, "\\'") %>';
         var pic = '<%= f.profilePic || "" %>';
         var iconHtml = pic
-          ? '<img src="' + pic + '" style="width:36px;height:36px;border-radius:50%;border:3px solid #FFB6C1;object-fit:cover">'
-          : '<div style="width:36px;height:36px;border-radius:50%;background:#FFB6C1;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:14px;border:3px solid #FFB6C1">' + name[0].toUpperCase() + '</div>';
-        var icon = L.divIcon({ html: iconHtml, className: '', iconSize: [36, 36], iconAnchor: [18, 18] });
+          ? '<img src="' + pic + '" style="width:40px;height:40px;border-radius:50%;border:3px solid #FFB6C1;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.15)">'
+          : '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#FFB6C1,#f8a5c2);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px;border:3px solid #f8a5c2;box-shadow:0 2px 8px rgba(0,0,0,0.15)">' + name[0].toUpperCase() + '</div>';
+        var icon = L.divIcon({ html: iconHtml, className: '', iconSize: [40, 40], iconAnchor: [20, 20] });
         var marker = L.marker([lat, lng], { icon: icon }).addTo(map);
-        marker.bindPopup('<b>' + name + '</b>');
+        marker.bindPopup('<div style="text-align:center"><b>' + name + '</b></div>');
         markers.push(marker);
         bounds.push([lat, lng]);
       })();
@@ -48,7 +75,7 @@ var markers = [];
 <% } %>
 
 if (bounds.length > 0) {
-  map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+  map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
 }
 
 var userMarker = null;
@@ -57,11 +84,11 @@ function updateUserLocation(pos) {
   var lng = pos.coords.longitude;
   if (!userMarker) {
     var userIcon = L.divIcon({
-      html: '<div style="width:16px;height:16px;border-radius:50%;background:#FF4081;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>',
-      className: '', iconSize: [16, 16], iconAnchor: [8, 8]
+      html: '<div style="position:relative"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FF4081,#ff6b9d);display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:3px solid white;box-shadow:0 2px 12px rgba(255,64,129,0.4)"><i class="fas fa-user"></i></div><div style="width:8px;height:8px;border-radius:50%;background:#FF4081;margin:2px auto 0;opacity:0.6"></div></div>',
+      className: '', iconSize: [28, 38], iconAnchor: [14, 38]
     });
     userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map);
-    userMarker.bindPopup('<b>You</b>');
+    userMarker.bindPopup('<div style="text-align:center"><b>You</b></div>');
     map.setView([lat, lng], 12);
   } else {
     userMarker.setLatLng([lat, lng]);
