@@ -67,10 +67,14 @@ html, body {
 .logo-icon {
   font-size: 28px;
 }
-.logo-img, .logo-svg {
+.logo-img {
   height: 36px;
   max-width: 160px;
   object-fit: contain;
+}
+.logo-svg {
+  display: block;
+  flex-shrink: 0;
 }
 
 .sidebar-user {
