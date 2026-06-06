@@ -266,12 +266,11 @@ const replyTargetText = document.getElementById('replyTargetText');
 if (socket.connected) {
   socket.emit('user-online', userId);
   socket.emit('join-group', groupId);
-} else {
-  socket.on('connect', () => {
-    socket.emit('user-online', userId);
-    socket.emit('join-group', groupId);
-  });
 }
+socket.on('connect', () => {
+  socket.emit('user-online', userId);
+  socket.emit('join-group', groupId);
+});
 
 const messagesContainer = document.getElementById('chatMessages');
 const messageInput = document.getElementById('messageInput');
