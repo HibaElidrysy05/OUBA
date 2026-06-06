@@ -145,6 +145,7 @@ app.use('/', require('./routes/messages'));
 app.use('/', require('./routes/groups'));
 app.use('/upload', require('./routes/upload'));
 app.use('/admin', require('./routes/admin'));
+app.use('/', require('./routes/map'));
 app.use('/', require('./routes/push'));
 
 socketHandler(io);

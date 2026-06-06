@@ -41,6 +41,14 @@
         <span class="char-count"><%= (user.bio || '').length %>/200</span>
       </div>
 
+      <div class="form-group" style="margin-top:4px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="checkbox" id="shareLocation" <%= user.shareLocation ? 'checked' : '' %> style="width:18px;height:18px;accent-color:#FFB6C1;cursor:pointer">
+          <span><i class="fas fa-map-marker-alt"></i> Share my location on the map</span>
+        </label>
+        <span class="form-hint">Your friends will see your real-time location. Only visible to your friends.</span>
+      </div>
+
       <div class="form-divider">
         <span>Change Password (optional)</span>
       </div>
@@ -106,6 +114,30 @@ document.getElementById('profilePicInput').addEventListener('change', function(e
 
 document.getElementById('bio').addEventListener('input', function() {
   document.querySelector('.char-count').textContent = `${this.value.length}/200`;
+});
+
+document.getElementById('shareLocation').addEventListener('change', function() {
+  if (this.checked) {
+    if (!navigator.geolocation) { alert('Geolocation not supported'); this.checked = false; return; }
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      fetch('/api/location/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, shareLocation: true })
+      }).then(function(r){ return r.json(); }).then(function(d){
+        if(!d.success) alert('Failed to save location');
+      }).catch(function(){ alert('Failed to save location'); });
+    }, function() {
+      alert('Could not get your location. Enable location services in Settings.');
+      document.getElementById('shareLocation').checked = false;
+    });
+  } else {
+    fetch('/api/location/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shareLocation: false })
+    }).catch(function(){});
+  }
 });
 
 function showToast(msg, type) {

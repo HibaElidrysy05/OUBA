@@ -1,0 +1,114 @@
+<%- include('partials/header', { title: title, activeNav: 'map' }) %>
+<div class="map-page">
+  <div class="map-toolbar" style="display:flex;align-items:center;gap:12px;padding:12px 0;flex-wrap:wrap">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:500">
+      <input type="checkbox" id="shareToggle" <%= user.shareLocation ? 'checked' : '' %> style="width:18px;height:18px;accent-color:#FFB6C1;cursor:pointer">
+      Share my location
+    </label>
+    <span style="font-size:12px;color:var(--text-light);flex:1">
+      <%= friends.filter(function(f){return f.shareLocation && f.latitude && f.longitude}).length %> friends sharing location
+    </span>
+  </div>
+  <div class="map-container">
+    <div id="map" style="width:100%;height:calc(100vh - 200px);border-radius:12px;overflow:hidden"></div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var map = L.map('map').setView([0, 0], 2);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap'
+}).addTo(map);
+
+var bounds = [];
+var markers = [];
+
+<% if (friends && friends.length > 0) { %>
+  <% friends.forEach(function(f) { %>
+    <% if (f.shareLocation && f.latitude && f.longitude) { %>
+      (function() {
+        var lat = <%= f.latitude %>;
+        var lng = <%= f.longitude %>;
+        var name = '<%= (f.displayName || f.username).replace(/'/g, "\\'") %>';
+        var pic = '<%= f.profilePic || "" %>';
+        var iconHtml = pic
+          ? '<img src="' + pic + '" style="width:36px;height:36px;border-radius:50%;border:3px solid #FFB6C1;object-fit:cover">'
+          : '<div style="width:36px;height:36px;border-radius:50%;background:#FFB6C1;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:14px;border:3px solid #FFB6C1">' + name[0].toUpperCase() + '</div>';
+        var icon = L.divIcon({ html: iconHtml, className: '', iconSize: [36, 36], iconAnchor: [18, 18] });
+        var marker = L.marker([lat, lng], { icon: icon }).addTo(map);
+        marker.bindPopup('<b>' + name + '</b>');
+        markers.push(marker);
+        bounds.push([lat, lng]);
+      })();
+    <% }); %>
+  <% }); %>
+<% } %>
+
+if (bounds.length > 0) {
+  map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+}
+
+var userMarker = null;
+function updateUserLocation(pos) {
+  var lat = pos.coords.latitude;
+  var lng = pos.coords.longitude;
+  if (!userMarker) {
+    var userIcon = L.divIcon({
+      html: '<div style="width:16px;height:16px;border-radius:50%;background:#FF4081;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>',
+      className: '', iconSize: [16, 16], iconAnchor: [8, 8]
+    });
+    userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map);
+    userMarker.bindPopup('<b>You</b>');
+    map.setView([lat, lng], 12);
+  } else {
+    userMarker.setLatLng([lat, lng]);
+  }
+  if (typeof currentUserId !== 'undefined' && document.getElementById('shareToggle') && document.getElementById('shareToggle').checked) {
+    fetch('/api/location/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latitude: lat, longitude: lng, shareLocation: true })
+    }).catch(function(){});
+  }
+}
+
+var currentUserId = '<%= user.id %>';
+var watchingId = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+  var toggle = document.getElementById('shareToggle');
+  if (toggle) {
+    toggle.addEventListener('change', function() {
+      if (this.checked) {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(function(pos) {
+            updateUserLocation(pos);
+            watchingId = navigator.geolocation.watchPosition(updateUserLocation, function(){}, { enableHighAccuracy: true });
+          }, function(err) {
+            alert('Could not get your location. Please enable location services in Settings.');
+            toggle.checked = false;
+          });
+        } else {
+          alert('Geolocation is not supported on this device');
+          toggle.checked = false;
+        }
+      } else {
+        if (watchingId) { navigator.geolocation.clearWatch(watchingId); watchingId = null; }
+        if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+        fetch('/api/location/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shareLocation: false })
+        }).catch(function(){});
+      }
+    });
+    if (toggle.checked && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(updateUserLocation, function(){});
+    }
+  }
+});
+</script>
+<%- include('partials/footer') %>

@@ -37,6 +37,18 @@ const User = sequelize.define('User', {
   role: {
     type: DataTypes.STRING,
     defaultValue: 'user'
+  },
+  shareLocation: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  latitude: {
+    type: DataTypes.FLOAT,
+    defaultValue: null
+  },
+  longitude: {
+    type: DataTypes.FLOAT,
+    defaultValue: null
   }
 }, {
   timestamps: true
