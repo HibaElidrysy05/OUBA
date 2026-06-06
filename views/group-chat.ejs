@@ -81,7 +81,11 @@
                   <% if (msg.fileType && msg.fileType.startsWith('image/')) { %>
                     <img src="<%= msg.fileUrl %>" alt="<%= msg.fileName || 'Image' %>" class="message-image" onclick="window.open(this.src)">
                   <% } else if (msg.fileType && msg.fileType.startsWith('audio/')) { %>
-                    <div class="message-audio-wrapper"><i class="fas fa-music"></i><audio controls src="<%= msg.fileUrl %>"></audio></div>
+                    <div class="custom-audio-player" data-src="<%= msg.fileUrl %>">
+                      <button class="play-btn" onclick="toggleAudio(this)"><i class="fas fa-play"></i></button>
+                      <div class="waveform-bars"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                      <span class="audio-time">0:00</span>
+                    </div>
                   <% } else { %>
                     <div class="file-attachment">
                       <i class="fas fa-file"></i>
@@ -143,10 +147,14 @@
         <input type="file" id="fileInput" accept="image/*,audio/*,video/*,application/*,text/*" style="display:none">
       </div>
       <div id="recordingBar" class="recording-bar" style="display:none">
-        <div class="recording-dot"></div>
+        <div class="recording-pulse"></div>
+        <div class="recording-waveform">
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+        </div>
         <span class="recording-timer" id="recordingTimer">0:00</span>
-        <button type="button" class="btn-recording" id="cancelRecording" title="Cancel"><i class="fas fa-times"></i></button>
-        <button type="button" class="btn-recording btn-recording-send" id="stopRecording" title="Send"><i class="fas fa-check"></i></button>
+        <button type="button" class="btn-recording-cancel" id="cancelRecording" title="Cancel"><i class="fas fa-times"></i></button>
+        <button type="button" class="btn-recording-stop" id="stopRecording" title="Send"><i class="fas fa-check"></i></button>
       </div>
       <div class="chat-input-field">
         <textarea id="messageInput" rows="1" placeholder="Type a message... (@ to mention)" autocomplete="off"></textarea>
@@ -332,7 +340,7 @@ socket.on('new-group-message', function(msg) {
     if (msg.fileType && msg.fileType.startsWith('image/')) {
       content += '<img src="' + escapeHtml(msg.fileUrl) + '" alt="' + escapeHtml(msg.fileName || 'Image') + '" class="message-image" onclick="window.open(this.src)">';
     } else if (msg.fileType && msg.fileType.startsWith('audio/')) {
-      content += '<div class="message-audio-wrapper"><i class="fas fa-music"></i><audio controls src="' + escapeHtml(msg.fileUrl) + '"></audio></div>';
+      content += '<div class="custom-audio-player" data-src="' + escapeHtml(msg.fileUrl) + '"><button class="play-btn" onclick="toggleAudio(this)"><i class="fas fa-play"></i></button><div class="waveform-bars"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><span class="audio-time">0:00</span></div>';
     } else {
       content += '<div class="file-attachment"><i class="fas fa-file"></i><div class="file-info"><a href="' + escapeHtml(msg.fileUrl) + '" target="_blank" class="file-name">' + escapeHtml(msg.fileName || 'File') + '</a>' + (msg.fileSize ? '<span class="file-size">' + (msg.fileSize / 1024 / 1024).toFixed(1) + ' MB</span>' : '') + '</div><a href="' + escapeHtml(msg.fileUrl) + '" download class="file-download"><i class="fas fa-download"></i></a></div>';
     }
@@ -827,5 +835,49 @@ cancelRecordingBtn.addEventListener('click', function() {
   recordingBar.style.display = 'none';
 });
 } // end if (micBtn)
+
+let currentAudio = null;
+let currentPlayer = null;
+function toggleAudio(btn) {
+  var player = btn.closest('.custom-audio-player');
+  var src = player.dataset.src;
+  if (currentAudio && currentPlayer === player) {
+    if (!currentAudio.paused) {
+      currentAudio.pause();
+      btn.querySelector('i').className = 'fas fa-play';
+      player.querySelector('.waveform-bars').classList.remove('playing');
+      return;
+    }
+    currentAudio.currentTime = 0;
+    currentAudio.play();
+    btn.querySelector('i').className = 'fas fa-pause';
+    player.querySelector('.waveform-bars').classList.add('playing');
+    return;
+  }
+  if (currentAudio) {
+    currentAudio.pause();
+    if (currentPlayer) {
+      currentPlayer.querySelector('.play-btn i').className = 'fas fa-play';
+      currentPlayer.querySelector('.waveform-bars').classList.remove('playing');
+    }
+  }
+  currentAudio = new Audio(src);
+  currentPlayer = player;
+  currentAudio.addEventListener('timeupdate', function() {
+    var m = Math.floor(this.currentTime / 60);
+    var s = Math.floor(this.currentTime % 60);
+    player.querySelector('.audio-time').textContent = m + ':' + (s < 10 ? '0' : '') + s;
+  });
+  currentAudio.addEventListener('ended', function() {
+    btn.querySelector('i').className = 'fas fa-play';
+    player.querySelector('.waveform-bars').classList.remove('playing');
+    player.querySelector('.audio-time').textContent = '0:00';
+    currentAudio = null;
+    currentPlayer = null;
+  });
+  currentAudio.play();
+  btn.querySelector('i').className = 'fas fa-pause';
+  player.querySelector('.waveform-bars').classList.add('playing');
+}
 </script>
 <%- include('partials/footer') %>
