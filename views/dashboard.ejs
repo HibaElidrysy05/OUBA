@@ -91,4 +91,103 @@
     </div>
   </div>
 </div>
+<script>
+(function() {
+  const socket = window.appSocket;
+  if (!socket) return;
+  let refreshTimer;
+
+  socket.on('new-message-alert', function() {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(refreshConversations, 600);
+  });
+
+  socket.on('unread-update', function(data) {
+    const dmBadge = document.querySelector('.nav-item[href="/"] .badge');
+    const groupBadge = document.querySelector('.nav-item[href="/groups"] .badge');
+    if (dmBadge) {
+      if (data.dmUnread > 0) dmBadge.textContent = data.dmUnread;
+      else dmBadge.remove();
+    } else if (data.dmUnread > 0) {
+      const homeLink = document.querySelector('.nav-item[href="/"]');
+      if (homeLink) {
+        const b = document.createElement('span');
+        b.className = 'badge';
+        b.textContent = data.dmUnread;
+        homeLink.appendChild(b);
+      }
+    }
+    if (groupBadge) {
+      if (data.groupUnread > 0) groupBadge.textContent = data.groupUnread;
+      else groupBadge.remove();
+    } else if (data.groupUnread > 0) {
+      const groupLink = document.querySelector('.nav-item[href="/groups"]');
+      if (groupLink) {
+        const b = document.createElement('span');
+        b.className = 'badge';
+        b.textContent = data.groupUnread;
+        groupLink.appendChild(b);
+      }
+    }
+  });
+
+  function refreshConversations() {
+    fetch('/api/conversations')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var list = document.querySelector('.conversation-list');
+        var emptyState = document.querySelector('.empty-state');
+        if (!list) {
+          if (data.conversations.length > 0 && emptyState) {
+            emptyState.remove();
+            var cardBody = document.querySelector('.conversations-card .card-body');
+            var newList = document.createElement('div');
+            newList.className = 'conversation-list';
+            cardBody.appendChild(newList);
+            list = newList;
+          } else {
+            return;
+          }
+        }
+        if (data.conversations.length === 0) {
+          var cardBody = list ? list.parentElement : document.querySelector('.conversations-card .card-body');
+          if (list) list.remove();
+          if (!cardBody.querySelector('.empty-state')) {
+            cardBody.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>No conversations yet</p><p class="sub-text">Add friends to start chatting!</p><a href="/friends" class="btn btn-primary"><i class="fas fa-user-friends"></i> Find Friends</a></div>';
+          }
+          return;
+        }
+        var html = '';
+        data.conversations.forEach(function(conv) {
+          var name = conv.user.displayName || conv.user.username;
+          var initial = (name || '?')[0].toUpperCase();
+          var preview = conv.lastMessage.fileUrl
+            ? '<i class="fas fa-paperclip"></i> Sent a file'
+            : (conv.lastMessage.content ? conv.lastMessage.content.substring(0, 30) || '' : '');
+          var time = new Date(conv.lastMessage.createdAt).toLocaleDateString();
+          var badgeHtml = conv.unreadCount > 0 ? '<span class="badge">' + conv.unreadCount + '</span>' : '';
+          html += '<a href="/chat/' + conv.user.id + '" class="conversation-item">';
+          html += '<div class="conversation-avatar">';
+          if (conv.user.profilePic) {
+            html += '<img src="' + conv.user.profilePic + '" alt="">';
+          } else {
+            html += '<div class="avatar-placeholder">' + initial + '</div>';
+          }
+          html += '<span class="status-dot offline" data-user-id="' + conv.user.id + '"></span>';
+          html += '</div>';
+          html += '<div class="conversation-info">';
+          html += '<span class="conversation-name">' + name + '</span>';
+          html += '<span class="conversation-preview">' + preview + '</span>';
+          html += '</div>';
+          html += '<div class="conversation-meta">';
+          html += '<span class="conversation-time">' + time + '</span>';
+          html += badgeHtml;
+          html += '</div>';
+          html += '</a>';
+        });
+        list.innerHTML = html;
+      });
+  }
+})();
+</script>
 <%- include('partials/footer') %>

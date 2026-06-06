@@ -102,6 +102,52 @@ app.use(async (req, res, next) => {
 
 app.use('/', require('./routes/auth'));
 
+app.get('/api/conversations', auth, async (req, res) => {
+  try {
+    const allMessages = await Message.findAll({
+      where: {
+        [Op.or]: [
+          { senderId: req.session.userId },
+          { receiverId: req.session.userId }
+        ],
+        groupId: null
+      },
+      order: [['createdAt', 'DESC']]
+    });
+
+    const convMap = {};
+    for (const msg of allMessages) {
+      const partnerId = msg.senderId === req.session.userId ? msg.receiverId : msg.senderId;
+      if (!partnerId) continue;
+      if (!convMap[partnerId]) {
+        convMap[partnerId] = { lastMessage: msg, unreadCount: 0 };
+      }
+      if (msg.receiverId === req.session.userId && !msg.read) {
+        convMap[partnerId].unreadCount += 1;
+      }
+    }
+
+    const partnerIds = Object.keys(convMap);
+    const conversationUsers = partnerIds.length > 0
+      ? await User.findAll({
+          where: { id: partnerIds },
+          attributes: ['id', 'username', 'displayName', 'profilePic', 'bio']
+        })
+      : [];
+
+    const conversations = conversationUsers.map(u => ({
+      user: u,
+      lastMessage: convMap[u.id].lastMessage,
+      unreadCount: convMap[u.id].unreadCount
+    }));
+    conversations.sort((a, b) => new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt));
+
+    res.json({ conversations });
+  } catch (error) {
+    res.json({ conversations: [] });
+  }
+});
+
 app.get('/', auth, async (req, res) => {
   try {
     const user = await User.findByPk(req.session.userId, {

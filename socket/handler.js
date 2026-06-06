@@ -1,8 +1,33 @@
 const { Message, User, Group, GroupMember, PushSubscription } = require('../models');
+const { Op } = require('sequelize');
 const { webpush } = require('../config/push');
 
 const onlineUsers = new Map();
 const disconnectTimers = new Map();
+
+async function emitUnreadCounts(io, userId) {
+  try {
+    const dmUnread = await Message.count({
+      where: { receiverId: userId, read: false, groupId: null }
+    });
+    const memberships = await GroupMember.findAll({
+      where: { userId },
+      attributes: ['groupId', 'lastReadAt']
+    });
+    let groupUnread = 0;
+    for (const m of memberships) {
+      const cnt = await Message.count({
+        where: {
+          groupId: m.groupId,
+          senderId: { [Op.ne]: userId },
+          createdAt: { [Op.gt]: m.lastReadAt }
+        }
+      });
+      groupUnread += cnt;
+    }
+    io.to('user:' + userId).emit('unread-update', { dmUnread, groupUnread });
+  } catch (_) {}
+}
 
 module.exports = (io) => {
   io.on('connection', (socket) => {
@@ -110,6 +135,8 @@ module.exports = (io) => {
           chatUrl: '/chat/' + data.senderId
         });
 
+        emitUnreadCounts(io, receiverId);
+
         if (!onlineUsers.has(receiverId)) {
           const senderName = populatedMessage.sender.displayName || populatedMessage.sender.username;
           sendPush(receiverId, 'Ouba - ' + senderName, content || (fileUrl ? 'Sent a file' : ''), '/chat/' + data.senderId);
@@ -175,6 +202,7 @@ module.exports = (io) => {
               chatUrl: '/group/' + groupId,
               mentioned: mentionIds.includes(m.userId)
             });
+            emitUnreadCounts(io, m.userId);
             if (!onlineUsers.has(m.userId)) {
               const senderName = populatedMessage.sender.displayName || populatedMessage.sender.username;
               const gName = group ? group.name : 'Group';
