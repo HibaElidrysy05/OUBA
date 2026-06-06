@@ -1454,6 +1454,16 @@ html, body {
   align-self: flex-end;
 }
 
+.message-footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.message-sent .message-footer {
+  justify-content: flex-end;
+}
 .message-sent .message-status {
   align-self: flex-end;
   margin-top: 2px;
@@ -1504,8 +1514,7 @@ html, body {
 .message-status {
   font-size: 10px;
   color: var(--text-light);
-  margin-left: 16px;
-  margin-top: 2px;
+  white-space: nowrap;
 }
 
 .message-status.read {
@@ -1733,8 +1742,6 @@ html, body {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-top: 4px;
-  padding-left: 4px;
 }
 
 .reaction-badge {

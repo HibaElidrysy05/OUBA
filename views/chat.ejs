@@ -120,16 +120,18 @@
                 <button class="btn-delete-msg" onclick="deleteMsg('<%= msg.id %>', 'dm', '<%= friend.id %>')" title="Delete"><i class="fas fa-trash"></i></button>
               <% } %>
             </div>
-            <% if (isMine) { %>
-              <span class="message-status <%= msg.read ? 'read' : '' %>"><%= msg.read ? 'Read' : 'Sent' %></span>
-            <% } %>
-            <% if (msg.reactions && Object.keys(msg.reactions).length > 0) { %>
-              <div class="message-reactions">
-                <% Object.keys(msg.reactions).forEach(function(emoji) { %>
-                  <span class="reaction-badge <%= (msg.reactions[emoji].indexOf(user.id) !== -1) ? 'mine' : '' %>" onclick="toggleReaction('<%= msg.id %>', '<%= emoji %>', 'dm', '<%= friend.id %>')"><i class="fas <%= { '❤️':'fa-heart','😂':'fa-face-laugh-squint','😮':'fa-face-surprise','😢':'fa-face-sad-tear','😡':'fa-face-angry','👍':'fa-thumbs-up' }[emoji] || 'fa-heart' %>"></i> <%= msg.reactions[emoji].length %></span>
-                <% }); %>
-              </div>
-            <% } %>
+            <div class="message-footer">
+              <% if (isMine) { %>
+                <span class="message-status <%= msg.read ? 'read' : '' %>"><%= msg.read ? 'Read' : 'Sent' %></span>
+              <% } %>
+              <% if (msg.reactions && Object.keys(msg.reactions).length > 0) { %>
+                <div class="message-reactions">
+                  <% Object.keys(msg.reactions).forEach(function(emoji) { %>
+                    <span class="reaction-badge <%= (msg.reactions[emoji].indexOf(user.id) !== -1) ? 'mine' : '' %>" onclick="toggleReaction('<%= msg.id %>', '<%= emoji %>', 'dm', '<%= friend.id %>')"><i class="fas <%= { '❤️':'fa-heart','😂':'fa-face-laugh-squint','😮':'fa-face-surprise','😢':'fa-face-sad-tear','😡':'fa-face-angry','👍':'fa-thumbs-up' }[emoji] || 'fa-heart' %>"></i> <%= msg.reactions[emoji].length %></span>
+                  <% }); %>
+                </div>
+              <% } %>
+            </div>
             <div class="message-emoji-bar">
               <span onclick="toggleReaction('<%= msg.id %>', '❤️', 'dm', '<%= friend.id %>')"><i class="fas fa-heart"></i></span>
               <span onclick="toggleReaction('<%= msg.id %>', '😂', 'dm', '<%= friend.id %>')"><i class="fas fa-face-laugh-squint"></i></span>
@@ -302,24 +304,30 @@ socket.on('new-message', function(msg) {
   }
 
   div.innerHTML = '<div class="message-content">' + content + '</div>';
+
+  const footer = document.createElement('div');
+  footer.className = 'message-footer';
+
   if (isMine) {
     var statusEl = document.createElement('span');
     statusEl.className = 'message-status' + (msg.read ? ' read' : '');
     statusEl.textContent = msg.read ? 'Read' : 'Sent';
-    div.appendChild(statusEl);
+    footer.appendChild(statusEl);
   }
 
-  const reactionsHtml = document.createElement('div');
-  reactionsHtml.className = 'message-reactions';
   if (msg.reactions && Object.keys(msg.reactions).length > 0) {
+    const reactionsHtml = document.createElement('div');
+    reactionsHtml.className = 'message-reactions';
     let rHtml = '';
     Object.keys(msg.reactions).forEach(function(emoji) {
       const mine = msg.reactions[emoji].indexOf(userId) !== -1;
       rHtml += '<span class="reaction-badge ' + (mine ? 'mine' : '') + '" onclick="toggleReaction(\'' + escapeHtml(msg.id) + '\', \'' + escapeHtml(emoji) + '\', \'dm\', \'' + escapeHtml(friendId) + '\')">' + emojiIcon(emoji) + ' ' + msg.reactions[emoji].length + '</span>';
     });
     reactionsHtml.innerHTML = rHtml;
-    div.appendChild(reactionsHtml);
+    footer.appendChild(reactionsHtml);
   }
+
+  div.appendChild(footer);
 
   const emojiBar = document.createElement('div');
   emojiBar.className = 'message-emoji-bar';
