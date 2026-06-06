@@ -1436,7 +1436,7 @@ html, body {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
-  padding-bottom: 0;
+  padding-bottom: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
