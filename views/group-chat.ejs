@@ -263,14 +263,14 @@ const replyPreview = document.getElementById('replyPreview');
 const replyTargetName = document.getElementById('replyTargetName');
 const replyTargetText = document.getElementById('replyTargetText');
 
-if (socket.connected) {
+function joinGroupRoom() {
   socket.emit('user-online', userId);
   socket.emit('join-group', groupId);
 }
-socket.on('connect', () => {
-  socket.emit('user-online', userId);
-  socket.emit('join-group', groupId);
-});
+if (socket.connected) joinGroupRoom();
+socket.on('connect', joinGroupRoom);
+// Re-join room periodically to survive reconnections without the connect event
+setInterval(joinGroupRoom, 30000);
 
 const messagesContainer = document.getElementById('chatMessages');
 const messageInput = document.getElementById('messageInput');
@@ -613,6 +613,8 @@ function sendMessage() {
             fileName: data.fileName,
             fileSize: data.fileSize,
             replyToId: replyParam
+          }, function(resp) {
+            if (resp && resp.error) showToast('Send failed: ' + resp.error, 'error');
           });
           clearFilePreview();
         } else {
@@ -634,6 +636,8 @@ function sendMessage() {
     fileName: null,
     fileSize: null,
     replyToId: replyParam
+  }, function(resp) {
+    if (resp && resp.error) showToast('Send failed: ' + resp.error, 'error');
   });
 
   messageInput.value = '';
@@ -799,6 +803,8 @@ micBtn.addEventListener('click', async function() {
               fileName: data.fileName,
               fileSize: data.fileSize,
               replyToId: replyToId || undefined
+            }, function(resp) {
+              if (resp && resp.error) showToast('Send failed: ' + resp.error, 'error');
             });
             replyToId = null;
           } else { showToast(data.error || 'Upload failed', 'error'); }

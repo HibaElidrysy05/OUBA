@@ -228,6 +228,20 @@ app.use('/', require('./routes/map'));
 app.use('/', require('./routes/push'));
 app.use('/', require('./routes/community'));
 
+app.get('/api/debug/group-messages/:id', auth, async (req, res) => {
+  try {
+    const messages = await Message.findAll({
+      where: { groupId: req.params.id },
+      order: [['createdAt', 'DESC']],
+      limit: 5,
+      include: [{ association: 'sender', attributes: ['id', 'username', 'displayName'] }]
+    });
+    res.json({ count: messages.length, messages });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 socketHandler(io);
 
 const PORT = process.env.PORT || 3000;

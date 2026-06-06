@@ -215,14 +215,13 @@ const replyPreview = document.getElementById('replyPreview');
 const replyTargetName = document.getElementById('replyTargetName');
 const replyTargetText = document.getElementById('replyTargetText');
 
-if (socket.connected) {
+function joinChatRoom() {
   socket.emit('user-online', userId);
   socket.emit('join-chat', { userId, friendId });
 }
-socket.on('connect', () => {
-  socket.emit('user-online', userId);
-  socket.emit('join-chat', { userId, friendId });
-});
+if (socket.connected) joinChatRoom();
+socket.on('connect', joinChatRoom);
+setInterval(joinChatRoom, 30000);
 
 const messagesContainer = document.getElementById('chatMessages');
 const messageInput = document.getElementById('messageInput');
