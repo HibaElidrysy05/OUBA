@@ -92,7 +92,7 @@
                   <% if (msg.fileType && msg.fileType.startsWith('image/')) { %>
                     <img src="<%= msg.fileUrl %>" alt="<%= msg.fileName || 'Image' %>" class="message-image" onclick="window.open(this.src)">
                   <% } else if (msg.fileType && msg.fileType.startsWith('audio/')) { %>
-                    <audio controls src="<%= msg.fileUrl %>"></audio>
+                    <div class="message-audio-wrapper"><i class="fas fa-music"></i><audio controls src="<%= msg.fileUrl %>"></audio></div>
                   <% } else { %>
                     <div class="file-attachment">
                       <i class="fas fa-file"></i>
@@ -172,6 +172,10 @@
       </div>
       <div id="recordingBar" class="recording-bar" style="display:none">
         <div class="recording-pulse"></div>
+        <div class="recording-waveform">
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+        </div>
         <span class="recording-timer" id="recordingTimer">0:00</span>
         <button type="button" class="btn-recording-cancel" id="cancelRecording" title="Cancel"><i class="fas fa-times"></i></button>
         <button type="button" class="btn-recording-stop" id="stopRecording" title="Send"><i class="fas fa-check"></i></button>
@@ -275,7 +279,7 @@ socket.on('new-message', function(msg) {
     if (msg.fileType && msg.fileType.startsWith('image/')) {
       content += '<img src="' + escapeHtml(msg.fileUrl) + '" alt="' + escapeHtml(msg.fileName || 'Image') + '" class="message-image" onclick="window.open(this.src)">';
     } else if (msg.fileType && msg.fileType.startsWith('audio/')) {
-      content += '<audio controls src="' + escapeHtml(msg.fileUrl) + '"></audio>';
+      content += '<div class="message-audio-wrapper"><i class="fas fa-music"></i><audio controls src="' + escapeHtml(msg.fileUrl) + '"></audio></div>';
     } else {
       content += '<div class="file-attachment"><i class="fas fa-file"></i><div class="file-info"><a href="' + escapeHtml(msg.fileUrl) + '" target="_blank" class="file-name">' + escapeHtml(msg.fileName || 'File') + '</a>' + (msg.fileSize ? '<span class="file-size">' + (msg.fileSize / 1024 / 1024).toFixed(1) + ' MB</span>' : '') + '</div><a href="' + escapeHtml(msg.fileUrl) + '" download class="file-download"><i class="fas fa-download"></i></a></div>';
     }
