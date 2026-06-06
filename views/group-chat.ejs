@@ -593,6 +593,8 @@ function sendMessage() {
 
   if (!content && !selectedFile) return;
 
+  // Ensure we're in the room before sending
+  socket.emit('join-group', groupId);
   const replyParam = replyToId || undefined;
   clearReply();
 
