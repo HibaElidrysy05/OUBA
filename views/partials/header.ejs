@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= typeof title !== 'undefined' ? title : 'Ouba' %></title>
-  <link rel="stylesheet" href="/css/style.css?v=24">
+  <link rel="stylesheet" href="/css/style.css?v=25">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/img/icon.svg">
@@ -46,7 +46,7 @@
   document.addEventListener('DOMContentLoaded', updateNotifBanner);
   </script>
 </head>
-<body data-user-id="<%= typeof currentUser !== 'undefined' && currentUser ? currentUser.id : '' %>">
+<body data-user-id="<%= typeof currentUser !== 'undefined' && currentUser ? currentUser.id : '' %>" data-theme="<%= flags && flags.neutral_theme ? 'neutral' : '' %>">
   <div class="app-container">
     <% if (typeof currentUser !== 'undefined' && currentUser) { %>
     <nav class="sidebar">
