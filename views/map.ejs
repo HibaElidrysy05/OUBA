@@ -4,7 +4,7 @@
     <label class="toggle-switch">
       <input type="checkbox" id="shareToggle" <%= user.shareLocation ? 'checked' : '' %>>
       <span class="toggle-track"></span>
-      <span class="toggle-label"><i class="fas fa-map-marker-alt" style="color:#FFB6C1"></i> Share my location</span>
+      <span class="toggle-label"><i class="fas fa-map-marker-alt map-location-icon" style="color:#FFB6C1"></i> Share my location</span>
     </label>
     <span class="friend-counter">
       <i class="fas fa-users"></i>
@@ -29,6 +29,24 @@
   background: #FFB6C1 !important;
   color: white !important;
 }
+[data-theme="blue"] .leaflet-control-zoom a {
+  background: #E8F1FF !important;
+  color: #4a7ec9 !important;
+  border-color: #5B8DEF !important;
+}
+[data-theme="blue"] .leaflet-control-zoom a:hover {
+  background: #5B8DEF !important;
+  color: white !important;
+}
+[data-theme="rainbow"] .leaflet-control-zoom a {
+  background: #f5e6ff !important;
+  color: #8b3d9e !important;
+  border-color: #b366cc !important;
+}
+[data-theme="rainbow"] .leaflet-control-zoom a:hover {
+  background: linear-gradient(135deg, #E40303, #FF8C00, #FFED00, #008026, #004CFF, #750787) !important;
+  color: white !important;
+}
 .leaflet-popup-content-wrapper {
   border-radius: 12px !important;
   box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
@@ -41,9 +59,58 @@
   margin: 8px 12px;
 }
 .leaflet-popup-tip { box-shadow: none !important; }
+
+.map-location-icon {
+  transition: color 0.3s;
+}
+[data-theme="blue"] .map-location-icon { color: #5B8DEF !important; }
+[data-theme="rainbow"] .map-location-icon { color: #b366cc !important; }
 </style>
 <script>
-var map = L.map('map', { zoomControl: true }).setView([0, 0], 2);
+var theme = document.body.getAttribute('data-theme') || 'pink';
+
+function themeColors() {
+  if (theme === 'rainbow') {
+    return {
+      accent: '#b366cc',
+      gradientA: '#b366cc',
+      gradientB: '#E40303',
+      userAccent: '#b366cc',
+      userGradA: '#750787',
+      userGradB: '#E40303',
+      shadow: 'rgba(115,6,135,0.4)',
+      border: '#b366cc',
+      bg: '#f5e6ff'
+    };
+  } else if (theme === 'blue') {
+    return {
+      accent: '#5B8DEF',
+      gradientA: '#5B8DEF',
+      gradientB: '#3a6bc7',
+      userAccent: '#5B8DEF',
+      userGradA: '#5B8DEF',
+      userGradB: '#3a6bc7',
+      shadow: 'rgba(91,141,239,0.4)',
+      border: '#5B8DEF',
+      bg: '#E8F1FF'
+    };
+  }
+  return {
+    accent: '#FFB6C1',
+    gradientA: '#FFB6C1',
+    gradientB: '#f8a5c2',
+    userAccent: '#FF4081',
+    userGradA: '#FF4081',
+    userGradB: '#ff6b9d',
+    shadow: 'rgba(255,64,129,0.4)',
+    border: '#FFB6C1',
+    bg: '#FFE4EC'
+  };
+}
+
+var c = themeColors();
+
+var map = L.map('map', { zoomControl: true });
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   maxZoom: 19,
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
@@ -54,17 +121,24 @@ var markers = {};
 var userMarker = null;
 var watchingId = null;
 var currentUserId = '<%= user.id %>';
+<% if (user.shareLocation && user.latitude && user.longitude) { %>
+var userLat = <%= user.latitude %>;
+var userLng = <%= user.longitude %>;
+<% } else { %>
+var userLat = undefined;
+var userLng = undefined;
+<% } %>
 
 function friendIcon(pic, name) {
   var initial = (name || '?')[0].toUpperCase();
   if (pic) {
-    return '<img src="' + pic + '" style="width:40px;height:40px;border-radius:50%;border:3px solid #FFB6C1;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.15)">';
+    return '<img src="' + pic + '" style="width:40px;height:40px;border-radius:50%;border:3px solid ' + c.accent + ';object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.15)">';
   }
-  return '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#FFB6C1,#f8a5c2);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px;border:3px solid #f8a5c2;box-shadow:0 2px 8px rgba(0,0,0,0.15)">' + initial + '</div>';
+  return '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,' + c.gradientA + ',' + c.gradientB + ');display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px;border:3px solid ' + c.border + ';box-shadow:0 2px 8px rgba(0,0,0,0.15)">' + initial + '</div>';
 }
 
 function userIconHtml() {
-  return '<div style="position:relative"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FF4081,#ff6b9d);display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:3px solid white;box-shadow:0 2px 12px rgba(255,64,129,0.4)"><i class="fas fa-user"></i></div><div style="width:8px;height:8px;border-radius:50%;background:#FF4081;margin:2px auto 0;opacity:0.6"></div></div>';
+  return '<div style="position:relative"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,' + c.userGradA + ',' + c.userGradB + ');display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:3px solid white;box-shadow:0 2px 12px ' + c.shadow + '"><i class="fas fa-user"></i></div><div style="width:8px;height:8px;border-radius:50%;background:' + c.userAccent + ';margin:2px auto 0;opacity:0.6"></div></div>';
 }
 
 function addFriendMarker(id, lat, lng, name, pic) {
@@ -116,6 +190,10 @@ function updateFriendCount() {
 
 if (bounds.length > 0) {
   map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+} else if (typeof userLat !== 'undefined' && typeof userLng !== 'undefined') {
+  map.setView([userLat, userLng], 12);
+} else {
+  map.setView([34, -6], 4);
 }
 updateFriendCount();
 
