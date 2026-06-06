@@ -7,6 +7,7 @@ const GroupMember = require('./GroupMember');
 const PasswordResetToken = require('./PasswordResetToken');
 const PushSubscription = require('./PushSubscription');
 const FeatureFlag = require('./FeatureFlag');
+const CommunityPost = require('./CommunityPost');
 
 User.hasMany(PasswordResetToken, { as: 'ResetTokens', foreignKey: 'userId' });
 PasswordResetToken.belongsTo(User, { foreignKey: 'userId' });
@@ -59,6 +60,9 @@ Group.hasMany(Message, { as: 'Messages', foreignKey: 'groupId' });
 User.hasMany(PushSubscription, { foreignKey: 'userId' });
 PushSubscription.belongsTo(User, { foreignKey: 'userId' });
 
+User.hasMany(CommunityPost, { foreignKey: 'userId' });
+CommunityPost.belongsTo(User, { as: 'user', foreignKey: 'userId' });
+
 const syncDB = async () => {
   try {
     const queryInterface = sequelize.getQueryInterface();
@@ -69,6 +73,14 @@ const syncDB = async () => {
         console.log('Dropped old PushSubscriptions table');
       }
     } catch (_) {}
+    try {
+      const communityDesc = await queryInterface.describeTable('CommunityPosts');
+      if (communityDesc.location && communityDesc.location.type !== 'VARCHAR(100)') {
+        console.log('CommunityPosts table shape ok');
+      }
+    } catch (_) {
+      console.log('Creating CommunityPosts table');
+    }
     await sequelize.sync({ alter: true });
     console.log('Database synchronized');
   } catch (error) {
@@ -76,4 +88,4 @@ const syncDB = async () => {
   }
 };
 
-module.exports = { User, Message, FriendRequest, Group, GroupMember, PasswordResetToken, PushSubscription, FeatureFlag, syncDB };
+module.exports = { User, Message, FriendRequest, Group, GroupMember, PasswordResetToken, PushSubscription, FeatureFlag, CommunityPost, syncDB };

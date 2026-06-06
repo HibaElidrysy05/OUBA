@@ -1,0 +1,265 @@
+<%- include('partials/header', { title: 'Community - Ouba', activeNav: 'community' }) %>
+<div class="container" style="padding:20px;max-width:900px;margin:0 auto">
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-header">
+      <h2><i class="fas fa-globe"></i> Community</h2>
+      <span style="font-size:13px;color:var(--text-light)">Share beautiful places & pictures</span>
+    </div>
+    <div class="card-body">
+      <form action="/community/create" method="POST" enctype="multipart/form-data" class="community-form">
+        <div class="form-group">
+          <label for="imageInput"><i class="fas fa-image"></i> Photo <span style="color:var(--text-light);font-weight:400">(required)</span></label>
+          <input type="file" id="imageInput" name="image" accept="image/*" required style="padding:8px;border:1px solid var(--pink-light);border-radius:var(--radius-sm);width:100%;font-size:14px">
+          <div id="imagePreview" style="display:none;margin-top:8px">
+            <img src="" alt="Preview" style="max-height:200px;border-radius:var(--radius-sm);max-width:100%">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="locationInput"><i class="fas fa-map-pin"></i> Location <span style="color:var(--text-light);font-weight:400">(optional, max 100 chars)</span></label>
+          <input type="text" id="locationInput" name="location" placeholder="e.g. Paris, France" maxlength="100" style="padding:10px 14px;border:1px solid var(--pink-light);border-radius:var(--radius-sm);width:100%;font-size:14px">
+        </div>
+        <div class="form-group">
+          <label for="commentInput"><i class="fas fa-quote-right"></i> Comment <span style="color:var(--text-light);font-weight:400">(optional, max 100 chars)</span></label>
+          <textarea id="commentInput" name="comment" rows="2" placeholder="What's special about this place?" maxlength="100" style="padding:10px 14px;border:1px solid var(--pink-light);border-radius:var(--radius-sm);width:100%;font-size:14px;resize:vertical;font-family:inherit"></textarea>
+          <span class="char-count" style="font-size:12px;color:var(--text-light)">0/100</span>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-upload"></i> Share with Community</button>
+      </form>
+    </div>
+  </div>
+
+  <% if (error) { %>
+    <div class="alert alert-error"><%= error %></div>
+  <% } %>
+  <% if (success) { %>
+    <div class="alert alert-success"><%= success %></div>
+  <% } %>
+
+  <div class="community-grid">
+    <% if (posts && posts.length > 0) { %>
+      <% posts.forEach(function(post) { %>
+        <div class="community-post-card" data-post-id="<%= post.id %>">
+          <div class="community-post-header">
+            <a href="/profile/<%= post.user.id %>" class="community-post-user">
+              <% if (post.user.profilePic) { %>
+                <img src="<%= post.user.profilePic %>" alt="" class="community-post-avatar">
+              <% } else { %>
+                <div class="avatar-placeholder" style="width:32px;height:32px;font-size:12px;display:inline-flex"><%= (post.user.displayName || post.user.username || '?')[0].toUpperCase() %></div>
+              <% } %>
+              <span class="community-post-username"><%= post.user.displayName || post.user.username %></span>
+            </a>
+            <% if (post.userId === user.id || user.role === 'admin') { %>
+              <button class="btn-delete-post" onclick="deletePost('<%= post.id %>')" title="Delete"><i class="fas fa-times"></i></button>
+            <% } %>
+          </div>
+          <div class="community-post-image">
+            <img src="<%= post.imageUrl %>" alt="Community photo" onclick="openLightbox(this.src)">
+          </div>
+          <% if (post.location) { %>
+            <div class="community-post-location">
+              <i class="fas fa-map-pin"></i> <%= post.location %>
+            </div>
+          <% } %>
+          <% if (post.comment) { %>
+            <div class="community-post-comment">
+              <%= post.comment %>
+            </div>
+          <% } %>
+          <div class="community-post-time">
+            <%= new Date(post.createdAt).toLocaleDateString() %>
+          </div>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <div class="empty-state" style="grid-column:1/-1">
+        <i class="fas fa-globe" style="font-size:48px;color:var(--pink-light)"></i>
+        <p>No posts yet</p>
+        <p class="sub-text">Be the first to share something beautiful!</p>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<div class="lightbox-overlay" id="lightbox" style="display:none" onclick="closeLightbox()">
+  <img src="" alt="" id="lightboxImg">
+  <span class="lightbox-close">&times;</span>
+</div>
+
+<style>
+.community-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.community-post-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 2px 12px var(--shadow-light);
+  transition: var(--transition);
+}
+.community-post-card:hover {
+  box-shadow: 0 4px 20px var(--shadow-pink);
+  transform: translateY(-2px);
+}
+.community-post-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+}
+.community-post-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--text-dark);
+  font-weight: 600;
+  font-size: 14px;
+}
+.community-post-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.community-post-username {
+  color: var(--text-dark);
+}
+.btn-delete-post {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: var(--transition);
+  font-size: 14px;
+}
+.btn-delete-post:hover {
+  background: var(--pink-lighter);
+  color: #e74c3c;
+}
+.community-post-image {
+  width: 100%;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+  cursor: pointer;
+}
+.community-post-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+.community-post-image img:hover {
+  transform: scale(1.05);
+}
+.community-post-location {
+  padding: 8px 14px 0;
+  font-size: 13px;
+  color: var(--pink-dark);
+  font-weight: 600;
+}
+.community-post-location i {
+  margin-right: 4px;
+}
+.community-post-comment {
+  padding: 4px 14px 8px;
+  font-size: 14px;
+  color: var(--text-dark);
+  line-height: 1.4;
+}
+.community-post-time {
+  padding: 0 14px 10px;
+  font-size: 11px;
+  color: var(--text-light);
+}
+.lightbox-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.lightbox-overlay img {
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: 12px;
+  object-fit: contain;
+}
+.lightbox-close {
+  position: fixed;
+  top: 20px;
+  right: 30px;
+  font-size: 40px;
+  color: white;
+  cursor: pointer;
+}
+.community-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+#imagePreview {
+  display: none;
+}
+#imagePreview img {
+  max-height: 200px;
+  border-radius: var(--radius-sm);
+  max-width: 100%;
+}
+@media (max-width: 640px) {
+  .community-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<script>
+document.getElementById('imageInput').addEventListener('change', function(e) {
+  var preview = document.getElementById('imagePreview');
+  var img = preview.querySelector('img');
+  if (this.files && this.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      img.src = ev.target.result;
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(this.files[0]);
+  } else {
+    preview.style.display = 'none';
+  }
+});
+
+document.getElementById('commentInput').addEventListener('input', function() {
+  document.querySelector('.char-count').textContent = this.value.length + '/100';
+});
+
+function openLightbox(src) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').style.display = 'flex';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').style.display = 'none';
+}
+
+function deletePost(id) {
+  if (!confirm('Delete this post?')) return;
+  fetch('/community/delete/' + id, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        var card = document.querySelector('.community-post-card[data-post-id="' + id + '"]');
+        if (card) card.remove();
+      } else {
+        alert(data.error || 'Failed to delete');
+      }
+    });
+}
+</script>
+<%- include('partials/footer') %>

@@ -2264,7 +2264,7 @@ html, body {
 }
 
 /* Responsive - Phone */
-.mobile-logout {
+.mobile-logout-section {
   display: none;
 }
 
@@ -2321,8 +2321,8 @@ html, body {
     display: none;
   }
 
-  .mobile-logout {
-    display: flex;
+  .mobile-logout-section {
+    display: block;
   }
 
   .main-content {
